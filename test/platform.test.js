@@ -378,3 +378,88 @@ test('blank rows left by the settings form are ignored without a warning', async
   assert.equal(api.registered.length, 5);
   assert.ok(!log.text().includes('no valid MAC'));
 });
+
+// ---------------------------------------------------------------- one tile for everything
+
+const GROUP = 'Linksys Velop';
+const subs = (accessory) => accessory.services.map((s) => s.subtype).filter(Boolean);
+
+test('one tile: every switch and sensor lives in a single accessory', async (t) => {
+  const { router, api, acc, sw } = await boot(t, { grouping: 'single', rebootSwitch: true });
+  assert.deepEqual(api.registered.map((a) => a.displayName).sort(), [GROUP, 'Restart Router']);
+  const group = acc(GROUP);
+  assert.equal(subs(group).length, 15, '5 devices x (pause, schedule, connected)');
+  assert.equal(group.getServiceById(Service.Switch, `${MAC.consoleA}|pause`).displayName, `${LIVING} Pause`);
+  assert.equal(group.getServiceById(Service.Switch, `${MAC.consoleA}|pause`).getCharacteristic(Characteristic.ConfiguredName).value, `${LIVING} Pause`);
+  assert.equal(await sw(GROUP, `${MAC.consoleA}|pause`).get(), false);
+  assert.equal(await sw(GROUP, `${MAC.consoleA}|schedule`).get(), true);
+  assert.equal(await sw(GROUP, `${MAC.consoleC}|pause`).get(), true);
+  const occ = (mac) => group.getServiceById(Service.OccupancySensor, `${mac}|presence`).getCharacteristic(Characteristic.OccupancyDetected).get();
+  assert.equal(await occ(MAC.consoleA), 1);
+  assert.equal(await occ(MAC.consoleC), 0);
+
+  await sw(GROUP, `${MAC.consoleA}|pause`).set(true);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(BLOCKED));
+  assert.deepEqual(router.rule(MAC.consoleBLan).wanSchedule, day(NIGHT));
+  assert.equal(await sw(GROUP, `${MAC.consoleA}|pause`).get(), true);
+  assert.equal(await sw(GROUP, `${MAC.consoleBLan}|pause`).get(), false);
+  await sw(GROUP, `${MAC.consoleA}|pause`).set(false);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(NIGHT));
+});
+
+test('one tile: several schedules and per-device choices still apply', async (t) => {
+  const { router, acc, sw, platform } = await boot(t, {
+    grouping: 'single', groupName: 'בקרת הורים', presenceSensors: false,
+    devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: TWO }, { name: 'Phone', macs: [MAC.phone], scheduleSwitch: false, presenceSensor: true }],
+  });
+  const group = acc('בקרת הורים');
+  assert.deepEqual(subs(group).filter((x) => x.startsWith(MAC.consoleA)).sort(),
+    [`${MAC.consoleA}|pause`, `${MAC.consoleA}|schedule:homework`, `${MAC.consoleA}|schedule:night`]);
+  assert.deepEqual(subs(group).filter((x) => x.startsWith(MAC.phone)).sort(), [`${MAC.phone}|pause`, `${MAC.phone}|presence`]);
+  await until(() => router.rule(MAC.consoleA).wanSchedule.sunday === BOTH.sunday);
+  await until(() => !platform.writing);
+  await sw('בקרת הורים', `${MAC.consoleA}|schedule:homework`).set(false);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(NIGHT));
+});
+
+test('one tile: switching layouts replaces the tiles and keeps the names', async (t) => {
+  const first = await boot(t, { devices: [{ name: 'My console', macs: [MAC.consoleA] }] });
+  assert.equal(first.api.registered.length, 5);
+  first.platform.stop();
+
+  first.router.down = true; // names must survive even before the router answers
+  const single = await boot(t, { grouping: 'single', devices: [{ name: 'My console', macs: [MAC.consoleA] }] },
+    { router: first.router, port: first.port, dir: first.dir, cached: first.api.registered, noWait: true });
+  single.platform.client.timeout = 300;
+  const group = single.acc(GROUP);
+  assert.ok(group, 'the shared accessory exists straight away');
+  assert.equal(group.getServiceById(Service.Switch, `${MAC.consoleBLan}|pause`).displayName, `${BASEMENT} Pause`);
+  await assert.rejects(() => single.sw(GROUP, `${MAC.consoleA}|pause`).set(true), /HAP status/);
+  first.router.down = false;
+  await single.platform.poll();
+  assert.deepEqual(single.api.registered.map((a) => a.displayName), [GROUP], 'the per-device tiles are gone');
+  assert.equal(subs(group).length, 15);
+  assert.equal(group.getServiceById(Service.Switch, `${MAC.consoleA}|pause`).displayName, 'My console Pause');
+  single.platform.stop();
+
+  // restart in the same layout with one device hidden: its switches are removed
+  const again = await boot(t, { grouping: 'single', exclude: [MAC.plug], devices: [{ name: 'My console', macs: [MAC.consoleA] }] },
+    { router: first.router, port: first.port, dir: first.dir, cached: single.api.registered });
+  assert.equal(again.api.registered.length, 1);
+  assert.equal(subs(again.acc(GROUP)).length, 12);
+  assert.ok(!subs(again.acc(GROUP)).some((x) => x.startsWith(MAC.plug)));
+  again.platform.stop();
+
+  // and back to one tile per device
+  const back = await boot(t, { devices: [{ name: 'My console', macs: [MAC.consoleA] }] },
+    { router: first.router, port: first.port, dir: first.dir, cached: again.api.registered });
+  assert.deepEqual(back.api.registered.map((a) => a.displayName).sort(), ['My console', BASEMENT, 'PS5 BB0001', 'PS5 CC0001', 'smart plug'].sort());
+});
+
+test('one tile: stops adding switches at the HomeKit limit instead of breaking the accessory', async (t) => {
+  const devices = [];
+  for (let i = 0; i < 40; i++) devices.push({ name: `Device ${i}`, macs: [`02:00:00:77:00:${i.toString(16).padStart(2, '0')}`] });
+  const { acc, log } = await boot(t, { grouping: 'single', autoDiscover: false, devices });
+  assert.ok(acc(GROUP).services.length <= 99);
+  assert.match(log.text(), /Too many switches for a single tile/);
+});

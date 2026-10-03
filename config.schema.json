@@ -35,6 +35,31 @@
         "type": "boolean",
         "default": true
       },
+      "grouping": {
+        "title": "Tiles in Apple Home",
+        "type": "string",
+        "default": "device",
+        "oneOf": [
+          {
+            "title": "One tile per device",
+            "enum": [
+              "device"
+            ]
+          },
+          {
+            "title": "One tile for everything",
+            "enum": [
+              "single"
+            ]
+          }
+        ],
+        "description": "With one tile for everything, all switches sit inside a single tile. Changing this creates new tiles in the Home app."
+      },
+      "groupName": {
+        "title": "Name of the single tile",
+        "type": "string",
+        "placeholder": "Linksys Velop"
+      },
       "pauseSwitches": {
         "title": "Pause switch for each device",
         "type": "boolean",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- New layout option: one tile for everything. All switches and sensors sit inside a single tile in the Home app instead of one tile per device.
+
 ## 1.1.0
 
 - New settings screen: the plugin reads the devices from the router, shows what is connected now, and you tick the ones to add. English and Hebrew.

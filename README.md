@@ -34,6 +34,17 @@ Home, then tap it to choose which tiles it gets (Pause, Schedule, Connected) and
 set its schedules. Devices that are already under **Parental Controls** in the
 Linksys app are added automatically.
 
+### One tile or many
+
+By default every device is its own tile in the Home app. If that is too many tiles,
+choose **One tile for everything** in the settings: all switches and sensors then
+sit inside a single tile, and you open it to reach a single switch.
+
+- Tapping the icon of that tile switches everything in it at once.
+- The Restart Router switch always stays a separate tile, so it cannot be hit by accident.
+- Changing the layout creates new tiles: rooms, names and automations set in the Home app have to be set again.
+- HomeKit allows about 100 switches and sensors in one tile. Give devices fewer tiles if you run into that.
+
 ### How Pause and Schedule work together
 
 - Turning **Pause** off puts the device back on whatever schedules are switched on, or fully online if none are.
@@ -99,6 +110,8 @@ Everything else is optional:
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | `autoDiscover` | `true` | Add every device that has a parental-control rule on the router. |
+| `grouping` | `"device"` | `"device"`: one tile per device. `"single"`: one tile for everything. |
+| `groupName` | plugin name | Name of the single tile. |
 | `pauseSwitches`, `scheduleSwitches`, `presenceSensors` | `true` | Which tiles each device gets. |
 | `rebootSwitch` | `false` | Add a switch that restarts the router. |
 | `pauseSwitchMode` | `"pause"` | `"pause"`: on = internet paused. `"internet"`: on = internet allowed. |

@@ -55,6 +55,11 @@
       inHome: 'In Apple Home',
       inHomeHint: 'Tap a device to choose what it gets in Apple Home.',
       none: 'No devices yet. Tick devices in the list below.',
+      layout: 'Tiles in Apple Home',
+      layoutDevice: 'One tile per device',
+      layoutSingle: 'One tile for everything',
+      layoutHint: 'All switches sit inside one tile. Tapping the icon of the tile switches all of them at once, so open the tile to use a single switch. Changing this setting creates new tiles: rooms, names and automations set in the Home app have to be set again.',
+      groupName: 'Name of the tile',
       auto: 'from Parental Controls',
       online: 'connected',
       offline: 'not connected',
@@ -118,6 +123,11 @@
       inHome: 'ב-Apple Home',
       inHomeHint: 'לחץ על מכשיר כדי לבחור מה הוא מקבל ב-Apple Home.',
       none: 'אין עדיין מכשירים. סמן מכשירים ברשימה למטה.',
+      layout: 'אריחים ב-Apple Home',
+      layoutDevice: 'אריח לכל מכשיר',
+      layoutSingle: 'אריח אחד לכל המכשירים',
+      layoutHint: 'כל המתגים נמצאים בתוך אריח אחד. לחיצה על הסמל של האריח מפעילה או מכבה את כולם יחד, לכן פותחים את האריח כדי להשתמש במתג בודד. שינוי של ההגדרה הזו יוצר אריחים חדשים: חדרים, שמות ואוטומציות שהוגדרו ב-Apple Home יצטרכו הגדרה מחדש.',
+      groupName: 'שם האריח',
       auto: 'מבקרת הורים',
       online: 'מחובר',
       offline: 'לא מחובר',
@@ -426,7 +436,16 @@
       </div>
 
       <h5>${esc(t('inHome'))}</h5>
-      <p class="lv-hint">${esc(t(current.length ? 'inHomeHint' : 'none'))}</p>
+      <label class="lv-label" style="margin-top:.3rem" for="lv-layout">${esc(t('layout'))}</label>
+      <select class="form-select" id="lv-layout" data-ch="layout">
+        <option value="device" ${cfg.grouping === 'single' ? '' : 'selected'}>${esc(t('layoutDevice'))}</option>
+        <option value="single" ${cfg.grouping === 'single' ? 'selected' : ''}>${esc(t('layoutSingle'))}</option>
+      </select>
+      ${cfg.grouping !== 'single' ? '' : `
+        <p class="lv-hint" style="margin:.4rem 0 0">${esc(t('layoutHint'))}</p>
+        <label class="lv-label" for="lv-group">${esc(t('groupName'))}</label>
+        <input class="form-control" id="lv-group" type="text" placeholder="${esc(cfg.name || 'Linksys Velop')}" value="${esc(cfg.groupName)}" data-in="group-name">`}
+      <p class="lv-hint" style="margin-top:.8rem">${esc(t(current.length ? 'inHomeHint' : 'none'))}</p>
       <div id="lv-chosen">${current.map(renderChosen).join('')}</div>
 
       ${renderNetwork(taken)}
@@ -512,6 +531,7 @@
       return;
     }
     if (kind === 'host' || kind === 'password') { cfg[kind] = el.value; push(); return; }
+    if (kind === 'group-name') { if (el.value.trim()) cfg.groupName = el.value; else delete cfg.groupName; push(); return; }
     if (kind === 'label') { cfg.labels = cfg.labels || {}; cfg.labels[el.dataset.key] = el.value; push(); return; }
     if (kind === 'opt-num') { const n = parseInt(el.value, 10); if (Number.isFinite(n)) cfg[el.dataset.key] = n; else delete cfg[el.dataset.key]; push(); return; }
     const item = current[Number(el.dataset.i)];
@@ -535,6 +555,7 @@
     const el = event.target.closest('[data-ch]');
     if (!el) return;
     const kind = el.dataset.ch;
+    if (kind === 'layout') { if (el.value === 'single') cfg.grouping = 'single'; else delete cfg.grouping; push(); render(); return; }
     if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'pick') { pick(el.dataset.mac); push(); render(); return; }
     if (kind === 'opt-bool') { cfg[el.dataset.key] = el.checked; push(); render(); return; }
