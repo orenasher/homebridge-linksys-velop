@@ -1,0 +1,49 @@
+{
+  "name": "homebridge-linksys-velop",
+  "displayName": "Linksys Velop",
+  "version": "1.0.0",
+  "description": "Linksys Velop parental controls in Apple Home: pause a device's internet, switch its schedule on or off, see whether it is connected, restart the router. Built for and tested on the Velop MX4200.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "files": [
+    "index.js",
+    "cli.js",
+    "lib",
+    "config.schema.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "homekit",
+    "linksys",
+    "velop",
+    "mx4200",
+    "mesh",
+    "router",
+    "parental-controls",
+    "parental control",
+    "presence"
+  ],
+  "engines": {
+    "node": "^18.20.4 || ^20.15.1 || ^22 || ^24",
+    "homebridge": "^1.6.0 || ^2.0.0-beta.0"
+  },
+  "author": "Oren Asher",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orenasher/homebridge-linksys-velop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/orenasher/homebridge-linksys-velop/issues"
+  },
+  "homepage": "https://github.com/orenasher/homebridge-linksys-velop#readme",
+  "bin": {
+    "linksys-velop": "cli.js"
+  }
+}

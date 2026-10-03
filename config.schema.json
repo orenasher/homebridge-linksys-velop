@@ -1,0 +1,176 @@
+{
+  "pluginAlias": "LinksysVelop",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Linksys Velop parental controls for Apple Home. Built for and tested on the **Velop MX4200**. Every device that already appears under Parental Controls in the Linksys app is added automatically.",
+  "footerDisplay": "The plugin talks to the router on your local network only. Your schedules are saved in the Homebridge storage folder and are part of a Homebridge backup.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Linksys Velop",
+        "required": true
+      },
+      "host": {
+        "title": "Router address",
+        "type": "string",
+        "placeholder": "192.168.1.1",
+        "description": "IP address of the main Velop node (the one connected to the modem).",
+        "required": true
+      },
+      "password": {
+        "title": "Router admin password",
+        "type": "string",
+        "description": "The password used to manage the router (not the Wi-Fi password).",
+        "required": true,
+        "x-schema-form": {
+          "type": "password"
+        }
+      },
+      "autoDiscover": {
+        "title": "Add every device that is under Parental Controls on the router",
+        "type": "boolean",
+        "default": true
+      },
+      "pauseSwitches": {
+        "title": "Pause switch for each device",
+        "type": "boolean",
+        "default": true
+      },
+      "scheduleSwitches": {
+        "title": "Schedule switch for each device",
+        "type": "boolean",
+        "default": true,
+        "description": "On = the device follows its pause schedule. Off = no schedule."
+      },
+      "presenceSensors": {
+        "title": "Connected sensor for each device",
+        "type": "boolean",
+        "default": true
+      },
+      "rebootSwitch": {
+        "title": "Add a switch that restarts the router",
+        "type": "boolean",
+        "default": false,
+        "description": "Restarting the main node takes the whole network down for a few minutes."
+      },
+      "pauseSwitchMode": {
+        "title": "Pause switch direction",
+        "type": "string",
+        "default": "pause",
+        "oneOf": [
+          { "title": "On = internet paused (like the Linksys app)", "enum": ["pause"] },
+          { "title": "On = internet allowed (turn off to block)", "enum": ["internet"] }
+        ]
+      },
+      "presenceSensorType": {
+        "title": "Connected sensor type",
+        "type": "string",
+        "default": "occupancy",
+        "oneOf": [
+          { "title": "Occupancy sensor", "enum": ["occupancy"] },
+          { "title": "Motion sensor", "enum": ["motion"] },
+          { "title": "Contact sensor (closed = connected)", "enum": ["contact"] }
+        ]
+      },
+      "defaultPauseStart": {
+        "title": "Default schedule: pause from",
+        "type": "string",
+        "default": "22:00",
+        "description": "Used for a device whose schedule is not known yet. Whole or half hours."
+      },
+      "defaultPauseEnd": {
+        "title": "Default schedule: pause until",
+        "type": "string",
+        "default": "06:00"
+      },
+      "devices": {
+        "title": "Devices (optional)",
+        "description": "Only needed to rename a device, to combine the Wi-Fi and cable addresses of one device into a single switch, or to add a device that is not under Parental Controls yet.",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "macs": {
+              "title": "MAC addresses",
+              "type": "array",
+              "items": {
+                "title": "MAC address",
+                "type": "string",
+                "placeholder": "AA:BB:CC:DD:EE:FF"
+              }
+            },
+            "pauseSwitch": {
+              "title": "Pause switch",
+              "type": "boolean",
+              "default": true
+            },
+            "scheduleSwitch": {
+              "title": "Schedule switch",
+              "type": "boolean",
+              "default": true
+            },
+            "presenceSensor": {
+              "title": "Connected sensor",
+              "type": "boolean",
+              "default": true
+            },
+            "pauseStart": {
+              "title": "Fixed schedule: pause from (optional)",
+              "type": "string",
+              "placeholder": "22:00"
+            },
+            "pauseEnd": {
+              "title": "Fixed schedule: pause until (optional)",
+              "type": "string",
+              "placeholder": "06:00"
+            }
+          }
+        }
+      },
+      "exclude": {
+        "title": "Devices to hide (MAC addresses)",
+        "type": "array",
+        "items": {
+          "title": "MAC address",
+          "type": "string",
+          "placeholder": "AA:BB:CC:DD:EE:FF"
+        }
+      },
+      "labels": {
+        "title": "Names used in Apple Home",
+        "type": "object",
+        "properties": {
+          "pause": { "title": "Pause switch", "type": "string", "placeholder": "Pause" },
+          "schedule": { "title": "Schedule switch", "type": "string", "placeholder": "Schedule" },
+          "connected": { "title": "Connected sensor", "type": "string", "placeholder": "Connected" },
+          "restart": { "title": "Restart switch", "type": "string", "placeholder": "Restart Router" }
+        }
+      },
+      "pollInterval": {
+        "title": "Refresh interval (seconds)",
+        "type": "integer",
+        "default": 15,
+        "minimum": 5,
+        "maximum": 3600
+      },
+      "offlineDelay": {
+        "title": "Seconds to wait before showing a device as not connected",
+        "type": "integer",
+        "default": 0,
+        "minimum": 0
+      },
+      "syncAppFlags": {
+        "title": "Keep the labels in the Linksys app in step (Paused / Pauses at...)",
+        "type": "boolean",
+        "default": true
+      }
+    }
+  }
+}
