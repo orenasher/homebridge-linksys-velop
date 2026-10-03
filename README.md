@@ -11,27 +11,53 @@ Smart Wi-Fi models are likely to work as well, but only the MX4200 has been test
 
 - No cloud account. The plugin only talks to the router on your own network.
 - No dependencies, and nothing to set up outside Homebridge.
+- Pick devices from a list of what is on your network. No MAC addresses to type.
 - Works side by side with the Linksys app: a change made in either place shows up in the other.
 
 ## What you get in Apple Home
 
-Every device that is under **Parental Controls** in the Linksys app is added
-automatically, with:
+For every device you choose:
 
 | Tile | What it does |
 | --- | --- |
 | **Pause** switch | On = the device has no internet (the same as *Pause* in the Linksys app). Off = internet is back. |
-| **Schedule** switch | On = the device follows its pause schedule, for example "pauses at 22:00". Off = no schedule. |
+| **Schedule** switch | On = the device follows its pause schedule, for example "pauses at 22:00". Off = no schedule. A device can have several schedules, each with its own switch. |
 | **Connected** sensor | Shows whether the device is connected to the network right now. |
 
 Optionally, a **Restart Router** switch.
 
+## Choosing devices
+
+The settings screen in the Homebridge UI reads the list of devices from the router
+and shows the ones that are connected right now. Tick a device to add it to Apple
+Home, then tap it to choose which tiles it gets (Pause, Schedule, Connected) and to
+set its schedules. Devices that are already under **Parental Controls** in the
+Linksys app are added automatically.
+
 ### How Pause and Schedule work together
 
-- Turning **Pause** off puts the device back on its schedule if the **Schedule** switch is on, and fully online if it is off.
-- Flipping **Schedule** while the device is paused does not lift the pause. It only decides what happens when the pause ends.
-- The router forgets a device's schedule while the device is paused. The plugin remembers it for you and puts it back.
-- A device that was already paused when the plugin first saw it has no known schedule. Its **Schedule** switch starts off, and switching it on applies the default schedule from the settings (22:00 to 06:00).
+- Turning **Pause** off puts the device back on whatever schedules are switched on, or fully online if none are.
+- Flipping a **Schedule** switch while the device is paused does not lift the pause. It only decides what happens when the pause ends.
+
+### Schedules
+
+There are two ways a device can be scheduled:
+
+- **The schedule from the Linksys app.** If you set no schedules in the plugin, the
+  device gets a single **Schedule** switch that turns the schedule from the Linksys
+  app on and off. The router forgets that schedule while the device is paused; the
+  plugin remembers it and puts it back. A device with no known schedule uses the
+  default from the settings (22:00 to 06:00).
+- **Schedules set in the plugin.** Add one or more schedules to a device in the
+  settings screen, each with a name, a time range and the days it applies to, for
+  example "Night" 22:00 to 06:00 every day and "Homework" 16:00 to 18:00 Sunday to
+  Thursday. Each one gets its own switch in Apple Home, named after the schedule.
+  The internet is blocked whenever any schedule that is switched on blocks it.
+
+Schedules set in the plugin replace the one in the Linksys app for that device: if
+the schedule is changed elsewhere, the plugin puts its own back. A pause made in the
+Linksys app is always respected. Times are in whole or half hours. A range that
+crosses midnight belongs to the day it starts on.
 
 ### Ideas for automations
 
@@ -53,7 +79,9 @@ Then open the plugin settings and fill in:
 - **Router address**: the IP address of the main Velop node (the one connected to the modem). The Linksys app shows it under the node's details; it is usually also your network's gateway address.
 - **Router admin password**: the password used to manage the router. This is not the Wi-Fi password and not your Linksys cloud account password.
 
-Restart Homebridge. The devices appear in the Home app.
+Tap **Find devices**, tick the devices you want, save, and restart Homebridge.
+The settings screen is available in English and Hebrew and follows the language of
+the Homebridge UI.
 
 ## Settings
 
@@ -75,32 +103,28 @@ Everything else is optional:
 | `rebootSwitch` | `false` | Add a switch that restarts the router. |
 | `pauseSwitchMode` | `"pause"` | `"pause"`: on = internet paused. `"internet"`: on = internet allowed. |
 | `presenceSensorType` | `"occupancy"` | `"occupancy"`, `"motion"` or `"contact"`. |
-| `defaultPauseStart`, `defaultPauseEnd` | `"22:00"`, `"06:00"` | Schedule used for a device whose schedule is not known yet. Whole or half hours. |
+| `defaultPauseStart`, `defaultPauseEnd` | `"22:00"`, `"06:00"` | Used by the single Schedule switch for a device whose schedule is not known yet. Whole or half hours. |
 | `devices` | `[]` | See below. |
 | `exclude` | `[]` | MAC addresses of devices that should not appear in Apple Home. |
-| `labels` | | Names of the tiles, for example `{ "pause": "Pause", "schedule": "Schedule", "connected": "Connected" }`. Any language works. |
+| `labels` | | Words used in the tile names, for example `{ "pause": "Pause", "schedule": "Schedule", "connected": "Connected" }`. Any language works. |
 | `pollInterval` | `15` | Seconds between refreshes. |
 | `offlineDelay` | `0` | Seconds a device must be gone before it shows as not connected. |
 | `syncAppFlags` | `true` | Keep the "Paused" label in the Linksys app in step. |
 
 ### The `devices` list
 
-You only need it for one of these:
-
-- **One switch for a device with two network addresses.** A games console has one
-  MAC address for cable and another for Wi-Fi. If only one of them is paused, the
-  child can switch to the other. List both and they are paused and resumed together.
-- **A device that is not under Parental Controls yet.** The plugin creates the rule
-  on the router the first time you pause it. The router allows 14 rules.
-- **A different name**, a fixed schedule, or fewer tiles for one device.
+The settings screen writes this list for you. By hand it looks like this:
 
 ```json
 "devices": [
   {
     "name": "Living room console",
     "macs": ["AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"],
-    "pauseStart": "21:30",
-    "pauseEnd": "07:00"
+    "schedules": [
+      { "id": "night", "name": "Night", "start": "22:00", "end": "06:00" },
+      { "id": "homework", "name": "Homework", "start": "16:00", "end": "18:00",
+        "days": ["sunday", "monday", "tuesday", "wednesday", "thursday"] }
+    ]
   },
   {
     "name": "Dad's phone",
@@ -111,8 +135,16 @@ You only need it for one of these:
 ]
 ```
 
-`pauseStart` and `pauseEnd` are optional. Without them the plugin uses the schedule
-it found on the router, and follows it when you change it in the Linksys app.
+- **`macs`**: a games console has one MAC address for cable and another for Wi-Fi.
+  If only one of them is paused, the child can switch to the other. List both and
+  they are paused, resumed and scheduled together. The first address identifies the
+  device in Apple Home, so add new addresses after it.
+- **`pauseSwitch`, `scheduleSwitch`, `presenceSensor`**: which tiles this device gets.
+  With `scheduleSwitch` off, schedules set in the plugin always apply.
+- **`schedules`**: see *Schedules* above. `days` left out means every day. `id` keeps
+  the switch the same in Apple Home when you rename a schedule.
+- A device that is not under Parental Controls yet gets its rule on the router the
+  first time it is paused or scheduled. The router allows 14 rules.
 
 ## Good to know
 
@@ -122,8 +154,9 @@ it found on the router, and follows it when you change it in the Linksys app.
   device you want to control.
 - **Backups.** The remembered schedules are stored in `linksys-velop.json` in the
   Homebridge storage folder, which is part of a normal Homebridge backup.
-- **Renaming.** Rename tiles in the Home app. The plugin does not overwrite names
-  after it has created a tile.
+- **Renaming.** Rename tiles in the Home app, or change the device name in the plugin
+  settings. A name set in the Home app is kept until you change the name in the
+  plugin settings again.
 - **The router password** is stored in the Homebridge `config.json`, like any other
   plugin credential.
 - **This is not an official Linksys API.** A firmware update could change it.

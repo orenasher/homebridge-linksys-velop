@@ -1,0 +1,569 @@
+<style>
+  .lv { font-size: 0.95rem; }
+  .lv * { box-sizing: border-box; }
+  .lv h5 { font-size: 1.05rem; font-weight: 600; margin: 1.4rem 0 0.2rem; }
+  .lv .lv-hint { opacity: 0.7; font-size: 0.85rem; margin: 0 0 0.6rem; }
+  .lv .lv-box { border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 0.6rem; padding: 0.85rem; margin-bottom: 0.6rem; }
+  .lv label.lv-label { display: block; font-size: 0.85rem; opacity: 0.8; margin: 0.6rem 0 0.2rem; }
+  .lv .lv-row { display: flex; gap: 0.5rem; align-items: center; }
+  .lv .lv-grow { flex: 1 1 auto; min-width: 0; }
+  .lv .lv-head { display: flex; gap: 0.6rem; align-items: center; cursor: pointer; background: none; border: 0; padding: 0; width: 100%; color: inherit; text-align: start; font: inherit; }
+  .lv .lv-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lv .lv-sub { opacity: 0.7; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lv .lv-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; background: rgba(128, 128, 128, 0.5); }
+  .lv .lv-dot.on { background: #2fb344; }
+  .lv .lv-chev { flex: 0 0 auto; opacity: 0.6; transition: transform 0.15s; }
+  .lv .lv-open .lv-chev { transform: rotate(90deg); }
+  .lv[dir="rtl"] .lv-chev { transform: scaleX(-1); }
+  .lv[dir="rtl"] .lv-open .lv-chev { transform: rotate(90deg); }
+  .lv .lv-tag { font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0.05rem 0.5rem; white-space: nowrap; flex: 0 0 auto; }
+  .lv .lv-body { margin-top: 0.8rem; padding-top: 0.2rem; border-top: 1px solid rgba(128, 128, 128, 0.25); }
+  .lv .lv-checks { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; margin-top: 0.7rem; }
+  .lv .lv-sched { border: 1px dashed rgba(128, 128, 128, 0.45); border-radius: 0.5rem; padding: 0.6rem; margin-top: 0.5rem; }
+  .lv .lv-days { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
+  .lv .lv-day { flex: 1 1 0; min-width: 0; padding: 0.3rem 0; border-radius: 0.4rem; border: 1px solid transparent; font-size: 0.8rem; line-height: 1.4; }
+  .lv .lv-day.off { border-color: rgba(128, 128, 128, 0.5); background: transparent; color: inherit; }
+  .lv .lv-x { flex: 0 0 auto; border: 0; background: none; color: inherit; opacity: 0.6; font-size: 1.3rem; line-height: 1; padding: 0 0.3rem; }
+  .lv .lv-pick { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); cursor: pointer; margin: 0; }
+  .lv .lv-pick:last-child { border-bottom: 0; }
+  .lv .lv-pick input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin: 0; }
+  .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
+  .lv .lv-status { font-size: 0.85rem; margin-top: 0.6rem; }
+  .lv .lv-ltr { direction: ltr; unicode-bidi: isolate; }
+  .lv input.lv-ltr, .lv select.lv-ltr { text-align: left; }
+  .lv .btn { white-space: nowrap; }
+</style>
+
+<div id="lv" class="lv"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const TEXT = {
+    en: {
+      router: 'Router',
+      host: 'Router address',
+      hostHint: 'IP address of the main Velop node (the one connected to the modem).',
+      password: 'Router admin password',
+      passwordHint: 'The password used to manage the router. Not the Wi-Fi password.',
+      connect: 'Find devices',
+      refresh: 'Refresh list',
+      loading: 'Reading the device list from the router...',
+      statusOk: '{online} devices connected now, {total} known. Parental Controls rules in use: {rules} of {max}.',
+      needLogin: 'Enter the router address and password, then tap "{button}".',
+      inHome: 'In Apple Home',
+      inHomeHint: 'Tap a device to choose what it gets in Apple Home.',
+      none: 'No devices yet. Tick devices in the list below.',
+      auto: 'from Parental Controls',
+      online: 'connected',
+      offline: 'not connected',
+      name: 'Name in Apple Home',
+      pause: 'Pause switch',
+      schedSwitch: 'Schedule switches',
+      sensor: 'Connected sensor',
+      schedules: 'Schedules',
+      noSchedules: 'No schedules set here. The Schedule switch uses the schedule from the Linksys app, or the default one.',
+      schedHint: 'Each schedule gets its own switch in Apple Home. Schedules set here replace the one in the Linksys app for this device.',
+      addSchedule: 'Add schedule',
+      schedName: 'Schedule name',
+      from: 'Pause from',
+      until: 'Until',
+      sameTime: 'The two times must be different.',
+      night: 'Night',
+      schedule: 'Schedule',
+      macs: 'Network addresses (MAC)',
+      macsHint: 'A console has one address for cable and another for Wi-Fi. Put both here, separated by a comma, to control them together.',
+      remove: 'Remove from Apple Home',
+      network: 'Devices on your network',
+      networkHint: 'Tick a device to add it to Apple Home.',
+      search: 'Search by name or address',
+      onlyOnline: 'Connected now only',
+      nothing: 'No devices match.',
+      more: 'Show {n} more',
+      options: 'More options',
+      autoDiscover: 'Add every device that is under Parental Controls on the router',
+      reboot: 'Add a switch that restarts the router',
+      rebootHint: 'Restarting takes the whole network down for a few minutes.',
+      direction: 'Pause switch direction',
+      dirPause: 'On = internet paused (like the Linksys app)',
+      dirInternet: 'On = internet allowed (turn off to block)',
+      sensorType: 'Connected sensor type',
+      occupancy: 'Occupancy sensor',
+      motion: 'Motion sensor',
+      contact: 'Contact sensor (closed = connected)',
+      defaults: 'Default schedule for the single Schedule switch',
+      labels: 'Words used in the tile names',
+      labelPause: 'Pause',
+      labelSchedule: 'Schedule',
+      labelConnected: 'Connected',
+      labelRestart: 'Restart Router',
+      poll: 'Refresh interval (seconds)',
+      offlineDelay: 'Seconds to wait before a device shows as not connected',
+      appFlags: 'Keep the "Paused" label in the Linksys app in step',
+      days: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+      saveNote: 'Tap Save below and restart Homebridge for changes to take effect.',
+    },
+    he: {
+      router: 'ראוטר',
+      host: 'כתובת הראוטר',
+      hostHint: 'כתובת ה-IP של הנקודה הראשית (זו שמחוברת למודם).',
+      password: 'סיסמת הניהול של הראוטר',
+      passwordHint: 'הסיסמה שמשמשת לניהול הראוטר. לא סיסמת ה-Wi-Fi.',
+      connect: 'מצא מכשירים',
+      refresh: 'רענן רשימה',
+      loading: 'קורא את רשימת המכשירים מהראוטר...',
+      statusOk: '{online} מכשירים מחוברים כרגע, {total} מוכרים. חוקי בקרת הורים בשימוש: {rules} מתוך {max}.',
+      needLogin: 'הזן כתובת וסיסמה ולחץ על "{button}".',
+      inHome: 'ב-Apple Home',
+      inHomeHint: 'לחץ על מכשיר כדי לבחור מה הוא מקבל ב-Apple Home.',
+      none: 'אין עדיין מכשירים. סמן מכשירים ברשימה למטה.',
+      auto: 'מבקרת הורים',
+      online: 'מחובר',
+      offline: 'לא מחובר',
+      name: 'שם ב-Apple Home',
+      pause: 'מתג השהיה',
+      schedSwitch: 'מתגי תזמון',
+      sensor: 'חיישן מחובר',
+      schedules: 'תזמונים',
+      noSchedules: 'לא הוגדרו כאן תזמונים. מתג התזמון משתמש בתזמון מאפליקציית Linksys, או בברירת המחדל.',
+      schedHint: 'כל תזמון מקבל מתג משלו ב-Apple Home. תזמונים שמוגדרים כאן מחליפים את התזמון באפליקציית Linksys למכשיר הזה.',
+      addSchedule: 'הוסף תזמון',
+      schedName: 'שם התזמון',
+      from: 'השהיה מ-',
+      until: 'עד',
+      sameTime: 'שתי השעות חייבות להיות שונות.',
+      night: 'לילה',
+      schedule: 'תזמון',
+      macs: 'כתובות רשת (MAC)',
+      macsHint: 'לקונסולה יש כתובת אחת לכבל ואחרת ל-Wi-Fi. כתוב כאן את שתיהן, מופרדות בפסיק, כדי לשלוט בהן יחד.',
+      remove: 'הסר מ-Apple Home',
+      network: 'מכשירים ברשת שלך',
+      networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home.',
+      search: 'חיפוש לפי שם או כתובת',
+      onlyOnline: 'רק מחוברים כרגע',
+      nothing: 'אין מכשירים מתאימים.',
+      more: 'הצג עוד {n}',
+      options: 'אפשרויות נוספות',
+      autoDiscover: 'הוסף כל מכשיר שנמצא בבקרת הורים בראוטר',
+      reboot: 'הוסף מתג שמפעיל מחדש את הראוטר',
+      rebootHint: 'הפעלה מחדש מורידה את כל הרשת לכמה דקות.',
+      direction: 'כיוון מתג ההשהיה',
+      dirPause: 'דלוק = האינטרנט מושהה (כמו באפליקציית Linksys)',
+      dirInternet: 'דלוק = יש אינטרנט (מכבים כדי לחסום)',
+      sensorType: 'סוג חיישן המחובר',
+      occupancy: 'חיישן נוכחות',
+      motion: 'חיישן תנועה',
+      contact: 'חיישן מגע (סגור = מחובר)',
+      defaults: 'תזמון ברירת מחדל למתג התזמון היחיד',
+      labels: 'המילים שמופיעות בשמות האריחים',
+      labelPause: 'Pause',
+      labelSchedule: 'Schedule',
+      labelConnected: 'Connected',
+      labelRestart: 'Restart Router',
+      poll: 'מרווח רענון (שניות)',
+      offlineDelay: 'שניות המתנה לפני שמכשיר מוצג כלא מחובר',
+      appFlags: 'שמור על התווית "Paused" באפליקציית Linksys מסונכרנת',
+      days: ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'],
+      saveNote: 'לחץ על שמור למטה והפעל מחדש את Homebridge כדי שהשינויים ייכנסו לתוקף.',
+    },
+  };
+
+  const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const TIMES = [];
+  for (let i = 0; i < 48; i++) TIMES.push(`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+  const PAGE = 40;
+
+  const root = document.getElementById('lv');
+  const hb = window.homebridge;
+  let lang = 'en';
+  let cfg = { platform: 'LinksysVelop', name: 'Linksys Velop' };
+  let router = null; // answer of the /devices request
+  let error = '';
+  let busy = false;
+  let current = []; // the "In Apple Home" list as last rendered
+  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false };
+
+  const t = (key, vars) => {
+    let text = (TEXT[lang] && TEXT[lang][key]) || TEXT.en[key] || key;
+    for (const [k, v] of Object.entries(vars || {})) text = text.replace(`{${k}}`, v);
+    return text;
+  };
+  const esc = (value) => String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const norm = (value) => {
+    const hex = String(value || '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+    return hex.length === 12 ? hex.match(/.{2}/g).join(':') : null;
+  };
+  const macsOf = (d) => [...new Set((Array.isArray(d && d.macs) ? d.macs : [d && d.mac]).map(norm).filter(Boolean))];
+  const homeName = (text) => String(text || '').replace(/[^\p{L}\p{N} ']/gu, ' ').replace(/\s+/g, ' ').replace(/^[ ']+|[ ']+$/g, '');
+  const newId = () => 's' + Math.random().toString(36).slice(2, 8);
+
+  // ------------------------------------------------------------- data helpers
+
+  function routerDevice(mac) {
+    return router ? router.devices.find((d) => d.macs.includes(mac)) : null;
+  }
+  function routerRule(mac) {
+    return router ? router.rules.find((r) => r.macs.includes(mac)) : null;
+  }
+  function routerName(macs) {
+    for (const mac of macs) { const d = routerDevice(mac); if (d && d.name) return d.name; }
+    return '';
+  }
+  function isOnline(macs) {
+    return macs.some((mac) => { const d = routerDevice(mac); return d && d.online; });
+  }
+
+  /** Devices that will be in Apple Home: the ones in the settings, plus the ones the plugin adds from the router's rules. */
+  function chosen() {
+    const list = [];
+    const claimed = new Set();
+    for (const d of Array.isArray(cfg.devices) ? cfg.devices : []) {
+      const macs = macsOf(d).filter((m) => !claimed.has(m));
+      if (!macs.length) continue;
+      macs.forEach((m) => claimed.add(m));
+      list.push({ device: d, macs, auto: false });
+    }
+    if (cfg.autoDiscover !== false && router) {
+      const hidden = new Set((cfg.exclude || []).map(norm));
+      for (const rule of router.rules) {
+        const macs = rule.macs.filter((m) => !claimed.has(m) && !hidden.has(m));
+        if (!macs.length) continue;
+        macs.forEach((m) => claimed.add(m));
+        list.push({ device: { macs }, macs, auto: true });
+      }
+    }
+    return list;
+  }
+
+  /** An automatically added device becomes a normal entry in the settings the moment it is customised. */
+  function own(item) {
+    if (!item.auto) return item.device;
+    const device = { name: homeName(routerName(item.macs)) || item.macs[0], macs: item.macs.slice() };
+    cfg.devices = (Array.isArray(cfg.devices) ? cfg.devices : []).concat([device]);
+    item.device = device;
+    item.auto = false;
+    return device;
+  }
+
+  function flag(device, key, globalKey) {
+    if (typeof device[key] === 'boolean') return device[key];
+    return typeof cfg[globalKey] === 'boolean' ? cfg[globalKey] : true;
+  }
+
+  let pushTimer = null;
+  function push() {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => {
+      const out = cfg;
+      out.platform = 'LinksysVelop';
+      if (!out.name) out.name = 'Linksys Velop';
+      if (typeof out.host === 'string') out.host = out.host.trim();
+      for (const key of ['devices', 'exclude']) if (Array.isArray(out[key]) && !out[key].length) delete out[key];
+      if (out.labels) {
+        for (const [k, v] of Object.entries(out.labels)) if (!String(v || '').trim()) delete out.labels[k];
+        if (!Object.keys(out.labels).length) delete out.labels;
+      }
+      for (const d of out.devices || []) if (Array.isArray(d.schedules) && !d.schedules.length) delete d.schedules;
+      hb.updatePluginConfig([out]);
+    }, 120);
+  }
+
+  // ------------------------------------------------------------------ render
+
+  const check = (id, label, checked, attrs) => `
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="${id}" ${checked ? 'checked' : ''} ${attrs}>
+      <label class="form-check-label" for="${id}">${esc(label)}</label>
+    </div>`;
+  const timeSelect = (value, attrs) => `
+    <select class="form-select lv-ltr" ${attrs}>${TIMES.map((x) => `<option ${x === value ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
+  const chevron = '<svg class="lv-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function renderSchedule(s, i, k) {
+    const days = Array.isArray(s.days) && s.days.length ? s.days : DAYS;
+    const same = s.start && s.start === s.end;
+    return `
+      <div class="lv-sched">
+        <div class="lv-row">
+          <input class="form-control lv-grow" type="text" placeholder="${esc(t('schedName'))}" value="${esc(s.name)}" data-in="sched-name" data-i="${i}" data-k="${k}">
+          <button type="button" class="lv-x" aria-label="remove" data-act="sched-remove" data-i="${i}" data-k="${k}">&times;</button>
+        </div>
+        <div class="lv-row" style="margin-top:.5rem">
+          <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('from'))}</label>${timeSelect(s.start, `data-ch="sched-start" data-i="${i}" data-k="${k}"`)}</div>
+          <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('until'))}</label>${timeSelect(s.end, `data-ch="sched-end" data-i="${i}" data-k="${k}"`)}</div>
+        </div>
+        ${same ? `<div class="lv-err">${esc(t('sameTime'))}</div>` : ''}
+        <div class="lv-days">
+          ${DAYS.map((d, n) => `<button type="button" class="lv-day ${days.includes(d) ? 'btn btn-primary' : 'off'}" aria-pressed="${days.includes(d)}" data-act="sched-day" data-i="${i}" data-k="${k}" data-day="${d}">${esc(t('days')[n])}</button>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderChosen(item, i) {
+    const d = item.device;
+    const name = d.name || routerName(item.macs) || item.macs[0];
+    const open = view.open === item.macs[0];
+    const online = isOnline(item.macs);
+    const head = `
+      <button type="button" class="lv-head" data-act="open" data-i="${i}">
+        <span class="lv-dot ${online ? 'on' : ''}" title="${esc(t(online ? 'online' : 'offline'))}"></span>
+        <span class="lv-grow">
+          <div class="lv-name">${esc(name)}</div>
+          <div class="lv-sub lv-ltr">${esc(item.macs.join(', '))}</div>
+        </span>
+        ${item.auto ? `<span class="lv-tag">${esc(t('auto'))}</span>` : ''}
+        ${chevron}
+      </button>`;
+    if (!open) return `<div class="lv-box">${head}</div>`;
+
+    const schedules = Array.isArray(d.schedules) ? d.schedules : [];
+    return `
+      <div class="lv-box lv-open">${head}
+        <div class="lv-body">
+          <label class="lv-label">${esc(t('name'))}</label>
+          <input class="form-control" type="text" value="${esc(item.auto ? homeName(name) : d.name)}" data-in="name" data-i="${i}">
+          <div class="lv-checks">
+            ${check(`lv-p${i}`, t('pause'), flag(d, 'pauseSwitch', 'pauseSwitches'), `data-ch="flag" data-key="pauseSwitch" data-i="${i}"`)}
+            ${check(`lv-s${i}`, t('schedSwitch'), flag(d, 'scheduleSwitch', 'scheduleSwitches'), `data-ch="flag" data-key="scheduleSwitch" data-i="${i}"`)}
+            ${check(`lv-c${i}`, t('sensor'), flag(d, 'presenceSensor', 'presenceSensors'), `data-ch="flag" data-key="presenceSensor" data-i="${i}"`)}
+          </div>
+          <label class="lv-label" style="margin-top:1rem">${esc(t('schedules'))}</label>
+          <p class="lv-hint">${esc(t(schedules.length ? 'schedHint' : 'noSchedules'))}</p>
+          ${schedules.map((s, k) => renderSchedule(s, i, k)).join('')}
+          <button type="button" class="btn btn-sm btn-primary" style="margin-top:.6rem" data-act="sched-add" data-i="${i}">+ ${esc(t('addSchedule'))}</button>
+          <label class="lv-label" style="margin-top:1rem">${esc(t('macs'))}</label>
+          <input class="form-control lv-ltr" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${esc(item.macs.join(', '))}" data-in="macs" data-i="${i}">
+          <p class="lv-hint" style="margin-top:.3rem">${esc(t('macsHint'))}</p>
+          <button type="button" class="btn btn-sm btn-danger" data-act="remove" data-i="${i}">${esc(t('remove'))}</button>
+        </div>
+      </div>`;
+  }
+
+  function renderNetwork(taken) {
+    if (!router) return '';
+    const query = view.search.trim().toLowerCase();
+    const list = router.devices
+      .filter((d) => !d.macs.some((m) => taken.has(m)))
+      .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
+      .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~'));
+    const shown = list.slice(0, view.limit);
+    return `
+      <h5>${esc(t('network'))}</h5>
+      <p class="lv-hint">${esc(t('networkHint'))}</p>
+      <input class="form-control" type="search" placeholder="${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
+      <div class="form-check form-switch" style="margin:.6rem 0">
+        <input class="form-check-input" type="checkbox" id="lv-online" ${view.onlyOnline ? 'checked' : ''} data-ch="only-online">
+        <label class="form-check-label" for="lv-online">${esc(t('onlyOnline'))}</label>
+      </div>
+      <div id="lv-net-wrap">
+      <div class="lv-box" id="lv-net" style="padding:.2rem .7rem">
+        ${shown.length ? shown.map((d) => `
+          <label class="lv-pick">
+            <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}">
+            <span class="lv-dot ${d.online ? 'on' : ''}"></span>
+            <span class="lv-grow">
+              <div class="lv-name">${esc(d.name || d.macs[0])}</div>
+              <div class="lv-sub lv-ltr">${esc([d.ip, d.macs.join(', ')].filter(Boolean).join(' · '))}</div>
+            </span>
+          </label>`).join('') : `<p class="lv-hint" style="margin:.6rem 0">${esc(t('nothing'))}</p>`}
+      </div>
+      ${list.length > shown.length ? `<button type="button" class="btn btn-sm btn-secondary" data-act="more">${esc(t('more', { n: Math.min(PAGE, list.length - shown.length) }))}</button>` : ''}
+      </div>`;
+  }
+
+  function renderOptions() {
+    const labels = cfg.labels || {};
+    const select = (key, value, options) => `<select class="form-select" data-ch="opt" data-key="${key}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${esc(text)}</option>`).join('')}</select>`;
+    const labelInput = (key) => `<div class="lv-grow"><input class="form-control" type="text" placeholder="${esc(t('label' + key[0].toUpperCase() + key.slice(1)))}" value="${esc(labels[key])}" data-in="label" data-key="${key}"></div>`;
+    return `
+      <div class="lv-box ${view.options ? 'lv-open' : ''}" style="margin-top:1.4rem">
+        <button type="button" class="lv-head" data-act="options"><span class="lv-grow lv-name">${esc(t('options'))}</span>${chevron}</button>
+        ${!view.options ? '' : `<div class="lv-body">
+          <div style="margin-top:.7rem">${check('lv-auto', t('autoDiscover'), cfg.autoDiscover !== false, 'data-ch="opt-bool" data-key="autoDiscover"')}</div>
+          <div style="margin-top:.5rem">${check('lv-reboot', t('reboot'), cfg.rebootSwitch === true, 'data-ch="opt-bool" data-key="rebootSwitch"')}</div>
+          <p class="lv-hint">${esc(t('rebootHint'))}</p>
+          <label class="lv-label">${esc(t('direction'))}</label>
+          ${select('pauseSwitchMode', cfg.pauseSwitchMode === 'internet' ? 'internet' : 'pause', [['pause', t('dirPause')], ['internet', t('dirInternet')]])}
+          <label class="lv-label">${esc(t('sensorType'))}</label>
+          ${select('presenceSensorType', cfg.presenceSensorType || 'occupancy', [['occupancy', t('occupancy')], ['motion', t('motion')], ['contact', t('contact')]])}
+          <label class="lv-label">${esc(t('defaults'))}</label>
+          <div class="lv-row">
+            <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('from'))}</label>${timeSelect(cfg.defaultPauseStart || '22:00', 'data-ch="opt" data-key="defaultPauseStart"')}</div>
+            <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('until'))}</label>${timeSelect(cfg.defaultPauseEnd || '06:00', 'data-ch="opt" data-key="defaultPauseEnd"')}</div>
+          </div>
+          <label class="lv-label">${esc(t('labels'))}</label>
+          <div class="lv-row">${labelInput('pause')}${labelInput('schedule')}</div>
+          <div class="lv-row" style="margin-top:.5rem">${labelInput('connected')}${labelInput('restart')}</div>
+          <label class="lv-label">${esc(t('poll'))}</label>
+          <input class="form-control lv-ltr" type="number" inputmode="numeric" min="5" max="3600" value="${esc(cfg.pollInterval || 15)}" data-in="opt-num" data-key="pollInterval">
+          <label class="lv-label">${esc(t('offlineDelay'))}</label>
+          <input class="form-control lv-ltr" type="number" inputmode="numeric" min="0" value="${esc(cfg.offlineDelay || 0)}" data-in="opt-num" data-key="offlineDelay">
+          <div style="margin-top:.8rem">${check('lv-flags', t('appFlags'), cfg.syncAppFlags !== false, 'data-ch="opt-bool" data-key="syncAppFlags"')}</div>
+        </div>`}
+      </div>`;
+  }
+
+  function render() {
+    current = chosen();
+    const taken = new Set(current.flatMap((item) => item.macs));
+    const online = router ? router.devices.filter((d) => d.online).length : 0;
+    const button = t(router ? 'refresh' : 'connect');
+    const status = busy ? t('loading')
+      : router ? t('statusOk', { online, total: router.devices.length, rules: router.rules.length, max: router.maxRules || '?' })
+        : t('needLogin', { button });
+    root.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+    root.innerHTML = `
+      <div class="lv-box">
+        <label class="lv-label" style="margin-top:0" for="lv-host">${esc(t('host'))}</label>
+        <input class="form-control lv-ltr" id="lv-host" type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1" value="${esc(cfg.host)}" data-in="host">
+        <p class="lv-hint" style="margin:.3rem 0 0">${esc(t('hostHint'))}</p>
+        <label class="lv-label" for="lv-pass">${esc(t('password'))}</label>
+        <input class="form-control lv-ltr" id="lv-pass" type="password" autocomplete="off" value="${esc(cfg.password)}" data-in="password">
+        <p class="lv-hint" style="margin:.3rem 0 .7rem">${esc(t('passwordHint'))}</p>
+        <button type="button" class="btn btn-primary" data-act="connect" ${busy ? 'disabled' : ''}>${esc(button)}</button>
+        ${error ? `<div class="lv-err">${esc(error)}</div>` : `<div class="lv-status lv-hint" style="margin-bottom:0">${esc(status)}</div>`}
+      </div>
+
+      <h5>${esc(t('inHome'))}</h5>
+      <p class="lv-hint">${esc(t(current.length ? 'inHomeHint' : 'none'))}</p>
+      <div id="lv-chosen">${current.map(renderChosen).join('')}</div>
+
+      ${renderNetwork(taken)}
+      ${renderOptions()}
+      <p class="lv-hint" style="margin-top:1rem">${esc(t('saveNote'))}</p>`;
+  }
+
+  // ------------------------------------------------------------------ actions
+
+  async function connect() {
+    if (busy) return;
+    busy = true; error = ''; render();
+    try {
+      if (hb.showSpinner) hb.showSpinner();
+      router = await hb.request('/devices', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password });
+    } catch (e) {
+      router = null;
+      error = (e && (e.message || (e.error && e.error.message))) || String(e);
+    } finally {
+      if (hb.hideSpinner) hb.hideSpinner();
+      busy = false;
+      render();
+    }
+  }
+
+  function removeItem(item) {
+    cfg.devices = (cfg.devices || []).filter((d) => d !== item.device);
+    // A device that has a rule on the router would be added again automatically, so hide it.
+    const ruled = item.macs.filter((m) => routerRule(m));
+    if (ruled.length && cfg.autoDiscover !== false) cfg.exclude = [...new Set([...(cfg.exclude || []).map(norm).filter(Boolean), ...ruled])];
+    view.open = null;
+  }
+
+  function pick(mac) {
+    const d = routerDevice(mac);
+    if (!d) return;
+    const hidden = new Set(d.macs);
+    cfg.exclude = (cfg.exclude || []).filter((m) => !hidden.has(norm(m)));
+    cfg.devices = (Array.isArray(cfg.devices) ? cfg.devices : []).concat([{ name: homeName(d.name) || d.macs[0], macs: d.macs.slice() }]);
+  }
+
+  root.addEventListener('click', (event) => {
+    const el = event.target.closest('[data-act]');
+    if (!el) return;
+    const act = el.dataset.act;
+    const item = current[Number(el.dataset.i)];
+    const k = Number(el.dataset.k);
+    if (act === 'connect') { connect(); return; }
+    if (act === 'more') { view.limit += PAGE; render(); return; }
+    if (act === 'options') { view.options = !view.options; render(); return; }
+    if (!item) return;
+    if (act === 'open') { view.open = view.open === item.macs[0] ? null : item.macs[0]; render(); return; }
+    if (act === 'remove') { removeItem(item); push(); render(); return; }
+    const device = own(item);
+    if (act === 'sched-add') {
+      const list = Array.isArray(device.schedules) ? device.schedules : (device.schedules = []);
+      list.push(list.length ? { id: newId(), name: `${t('schedule')} ${list.length + 1}`, start: '14:00', end: '16:00' }
+        : { id: newId(), name: t('night'), start: '22:00', end: '06:00' });
+    } else if (act === 'sched-remove') {
+      device.schedules.splice(k, 1);
+    } else if (act === 'sched-day') {
+      const s = device.schedules[k];
+      const days = new Set(Array.isArray(s.days) && s.days.length ? s.days : DAYS);
+      if (days.has(el.dataset.day)) days.delete(el.dataset.day); else days.add(el.dataset.day);
+      if (!days.size) return; // at least one day
+      if (days.size === 7) delete s.days; else s.days = DAYS.filter((d) => days.has(d));
+    }
+    push(); render();
+  });
+
+  // Typing: update the settings without redrawing, so the keyboard stays open.
+  root.addEventListener('input', (event) => {
+    const el = event.target.closest('[data-in]');
+    if (!el) return;
+    const kind = el.dataset.in;
+    if (kind === 'search') {
+      view.search = el.value; view.limit = PAGE;
+      const holder = document.createElement('div');
+      holder.innerHTML = renderNetwork(new Set(current.flatMap((item) => item.macs)));
+      const fresh = holder.querySelector('#lv-net-wrap');
+      const old = root.querySelector('#lv-net-wrap');
+      if (fresh && old) old.replaceWith(fresh);
+      return;
+    }
+    if (kind === 'host' || kind === 'password') { cfg[kind] = el.value; push(); return; }
+    if (kind === 'label') { cfg.labels = cfg.labels || {}; cfg.labels[el.dataset.key] = el.value; push(); return; }
+    if (kind === 'opt-num') { const n = parseInt(el.value, 10); if (Number.isFinite(n)) cfg[el.dataset.key] = n; else delete cfg[el.dataset.key]; push(); return; }
+    const item = current[Number(el.dataset.i)];
+    if (!item) return;
+    if (kind === 'macs') {
+      const macs = [...new Set(el.value.split(/[\s,;]+/).map(norm).filter(Boolean))];
+      if (!macs.length) return; // keep the last valid list while the user is typing
+      const device = own(item);
+      device.macs = macs;
+      item.macs = macs;
+      view.open = macs[0];
+    } else if (kind === 'name') {
+      own(item).name = el.value;
+    } else if (kind === 'sched-name') {
+      own(item).schedules[Number(el.dataset.k)].name = el.value;
+    }
+    push();
+  });
+
+  root.addEventListener('change', (event) => {
+    const el = event.target.closest('[data-ch]');
+    if (!el) return;
+    const kind = el.dataset.ch;
+    if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
+    if (kind === 'pick') { pick(el.dataset.mac); push(); render(); return; }
+    if (kind === 'opt-bool') { cfg[el.dataset.key] = el.checked; push(); render(); return; }
+    if (kind === 'opt') { cfg[el.dataset.key] = el.value; push(); return; }
+    const item = current[Number(el.dataset.i)];
+    if (!item) return;
+    const device = own(item);
+    if (kind === 'flag') {
+      device[el.dataset.key] = el.checked;
+    } else if (kind === 'sched-start' || kind === 'sched-end') {
+      device.schedules[Number(el.dataset.k)][kind === 'sched-start' ? 'start' : 'end'] = el.value;
+    }
+    push(); render();
+  });
+
+  // -------------------------------------------------------------------- start
+
+  (async () => {
+    try {
+      const code = typeof hb.i18nCurrentLang === 'function' ? await hb.i18nCurrentLang() : navigator.language;
+      if (String(code || '').toLowerCase().startsWith('he')) lang = 'he';
+    } catch (e) { /* keep English */ }
+    try {
+      const blocks = await hb.getPluginConfig();
+      if (Array.isArray(blocks) && blocks.length) cfg = blocks[0];
+      else { push(); }
+    } catch (e) { /* start with an empty configuration */ }
+    render();
+    if (cfg.host && cfg.password) connect();
+  })();
+})();
+</script>

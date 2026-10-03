@@ -259,3 +259,122 @@ test('not configured: stays quiet', () => {
   assert.equal(p.disabled, true);
   assert.match(log.text(), /Not configured/);
 });
+
+// ---------------------------------------------------------------- several schedules per device
+
+const { nightlyWeek, windowWeek, combineWeeks } = require('../lib/schedule');
+
+const TWO = [
+  { id: 'night', name: 'Night', start: '22:00', end: '06:00' },
+  { id: 'homework', name: 'Homework', start: '16:00', end: '18:00', days: ['sunday', 'monday'] },
+];
+const HOMEWORK = windowWeek('16:00', '18:00', ['sunday', 'monday']);
+const BOTH = combineWeeks([nightlyWeek('22:00', '06:00'), HOMEWORK]);
+
+test('several schedules: one switch each, combined into the router rule', async (t) => {
+  const { router, acc, sw, platform } = await boot(t, { devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: TWO }] });
+  assert.ok(!acc('Console').getServiceById(Service.Switch, 'schedule'), 'the single Schedule switch is replaced');
+  assert.equal(acc('Console').getServiceById(Service.Switch, 'schedule:homework').displayName, 'Console Homework');
+  assert.equal(await sw('Console', 'schedule:night').get(), true);
+  assert.equal(await sw('Console', 'schedule:homework').get(), true);
+
+  // The router only had the night schedule: the plugin adds the new one by itself.
+  await until(() => router.rule(MAC.consoleA).wanSchedule.sunday === BOTH.sunday);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, BOTH);
+  assert.notEqual(BOTH.sunday, BOTH.tuesday);
+  await until(() => !platform.writing);
+
+  await sw('Console', 'schedule:homework').set(false);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(NIGHT));
+  await sw('Console', 'schedule:night').set(false);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(OPEN));
+  await sw('Console', 'schedule:homework').set(true);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, HOMEWORK);
+
+  await sw('Console', 'pause').set(true);
+  await sw('Console', 'schedule:night').set(true);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, day(BLOCKED), 'still paused');
+  await sw('Console', 'pause').set(false);
+  assert.deepEqual(router.rule(MAC.consoleA).wanSchedule, BOTH);
+  // Other devices were never touched.
+  assert.deepEqual(router.rule(MAC.consoleBLan).wanSchedule, day(NIGHT));
+  assert.deepEqual(router.rule(MAC.consoleC).wanSchedule, day(BLOCKED));
+});
+
+test('several schedules: a change made elsewhere is put back, a pause made elsewhere is respected', async (t) => {
+  const { router, sw, platform, sets } = await boot(t, { devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: TWO }] });
+  await until(() => router.rule(MAC.consoleA).wanSchedule.sunday === BOTH.sunday);
+  await until(() => !platform.writing);
+
+  router.rule(MAC.consoleA).wanSchedule = day(OPEN);
+  await platform.poll();
+  await until(() => router.rule(MAC.consoleA).wanSchedule.sunday === BOTH.sunday);
+  await until(() => !platform.writing);
+
+  router.rule(MAC.consoleA).wanSchedule = day(BLOCKED);
+  const writes = sets().length;
+  await platform.poll();
+  await sleep(400);
+  assert.equal(await sw('Console', 'pause').get(), true);
+  assert.equal(sets().length, writes, 'a pause is not overwritten');
+});
+
+test('several schedules: the plugin gives up instead of writing forever', async (t) => {
+  const router = new MockRouter('secret');
+  const port = await router.listen();
+  t.after(() => router.close());
+  const realRun = router.run.bind(router);
+  router.run = (action, request) => (action.endsWith('SetParentalControlSettings') ? { result: 'OK', output: {} } : realRun(action, request));
+  const { platform, sets, log } = await boot(t, { devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: TWO }] }, { router, port });
+  for (let i = 0; i < 6; i++) { await until(() => !platform.writing); await sleep(300); await platform.poll(); }
+  await until(() => !platform.writing);
+  await sleep(300);
+  assert.ok(sets().length <= 2, `wrote ${sets().length} times`);
+  assert.match(log.text(), /keeps a different schedule/);
+});
+
+test('several schedules without switches always apply; bad rows are skipped', async (t) => {
+  const { router, acc, log } = await boot(t, {
+    devices: [{ name: 'Console', macs: [MAC.consoleA], scheduleSwitch: false,
+      schedules: [{ name: 'Homework', start: '16:00', end: '18:00', days: ['sunday', 'monday'] }, { name: 'Broken', start: '25:00', end: '26:00' }, {}] }],
+  });
+  await until(() => router.rule(MAC.consoleA).wanSchedule.sunday === HOMEWORK.sunday);
+  assert.equal(acc('Console').services.filter((s) => s.subtype && s.subtype.startsWith('schedule')).length, 0);
+  assert.match(log.text(), /schedule "Broken" ignored/);
+});
+
+test('removing a schedule in the settings removes its switch', async (t) => {
+  const first = await boot(t, { devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: TWO }] });
+  await until(() => first.router.rule(MAC.consoleA).wanSchedule.sunday === BOTH.sunday);
+  await until(() => !first.platform.writing);
+  first.platform.stop();
+  const second = await boot(t, { devices: [{ name: 'Console', macs: [MAC.consoleA], schedules: [TWO[0]] }] },
+    { router: first.router, port: first.port, dir: first.dir, cached: first.api.registered });
+  assert.ok(!second.acc('Console').getServiceById(Service.Switch, 'schedule:homework'));
+  assert.ok(second.acc('Console').getServiceById(Service.Switch, 'schedule:night'));
+  await until(() => first.router.rule(MAC.consoleA).wanSchedule.sunday === NIGHT);
+});
+
+test('names: changed in the settings are applied, changed in the Home app are kept', async (t) => {
+  const cfg = (name, pause) => ({ labels: { pause }, devices: [{ name, macs: [MAC.consoleA] }] });
+  const first = await boot(t, cfg('Console', 'Pause'));
+  const configured = (ctx) => ctx.acc(ctx.api.registered.find((a) => a.context.id === MAC.consoleA).displayName)
+    .getServiceById(Service.Switch, 'pause').getCharacteristic(Characteristic.ConfiguredName);
+  assert.equal(configured(first).value, 'Console Pause');
+  configured(first).updateValue('My own name'); // renamed in the Home app
+  first.platform.stop();
+
+  const same = await boot(t, cfg('Console', 'Pause'), { router: first.router, port: first.port, dir: first.dir, cached: first.api.registered });
+  assert.equal(configured(same).value, 'My own name');
+  same.platform.stop();
+
+  const renamed = await boot(t, cfg('טלוויזיה', 'השהיה'), { router: first.router, port: first.port, dir: first.dir, cached: same.api.registered });
+  assert.equal(configured(renamed).value, 'טלוויזיה השהיה');
+  assert.equal(renamed.api.registered.find((a) => a.context.id === MAC.consoleA).displayName, 'טלוויזיה');
+});
+
+test('blank rows left by the settings form are ignored without a warning', async (t) => {
+  const { api, log } = await boot(t, { devices: [{ pauseSwitch: true, macs: [''] }, {}], exclude: [''] });
+  assert.equal(api.registered.length, 5);
+  assert.ok(!log.text().includes('no valid MAC'));
+});

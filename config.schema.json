@@ -2,6 +2,7 @@
   "pluginAlias": "LinksysVelop",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
   "headerDisplay": "Linksys Velop parental controls for Apple Home. Built for and tested on the **Velop MX4200**. Every device that already appears under Parental Controls in the Linksys app is added automatically.",
   "footerDisplay": "The plugin talks to the router on your local network only. Your schedules are saved in the Homebridge storage folder and are part of a Homebridge backup.",
   "schema": {
@@ -61,8 +62,18 @@
         "type": "string",
         "default": "pause",
         "oneOf": [
-          { "title": "On = internet paused (like the Linksys app)", "enum": ["pause"] },
-          { "title": "On = internet allowed (turn off to block)", "enum": ["internet"] }
+          {
+            "title": "On = internet paused (like the Linksys app)",
+            "enum": [
+              "pause"
+            ]
+          },
+          {
+            "title": "On = internet allowed (turn off to block)",
+            "enum": [
+              "internet"
+            ]
+          }
         ]
       },
       "presenceSensorType": {
@@ -70,9 +81,24 @@
         "type": "string",
         "default": "occupancy",
         "oneOf": [
-          { "title": "Occupancy sensor", "enum": ["occupancy"] },
-          { "title": "Motion sensor", "enum": ["motion"] },
-          { "title": "Contact sensor (closed = connected)", "enum": ["contact"] }
+          {
+            "title": "Occupancy sensor",
+            "enum": [
+              "occupancy"
+            ]
+          },
+          {
+            "title": "Motion sensor",
+            "enum": [
+              "motion"
+            ]
+          },
+          {
+            "title": "Contact sensor (closed = connected)",
+            "enum": [
+              "contact"
+            ]
+          }
         ]
       },
       "defaultPauseStart": {
@@ -130,6 +156,51 @@
               "title": "Fixed schedule: pause until (optional)",
               "type": "string",
               "placeholder": "06:00"
+            },
+            "schedules": {
+              "title": "Schedules",
+              "description": "Each schedule gets its own switch in Apple Home. Schedules set here replace the one in the Linksys app for this device.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "title": "ID",
+                    "type": "string"
+                  },
+                  "name": {
+                    "title": "Name",
+                    "type": "string",
+                    "placeholder": "Night"
+                  },
+                  "start": {
+                    "title": "Pause from",
+                    "type": "string",
+                    "placeholder": "22:00"
+                  },
+                  "end": {
+                    "title": "Until",
+                    "type": "string",
+                    "placeholder": "06:00"
+                  },
+                  "days": {
+                    "title": "Days (empty = every day)",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "sunday",
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday"
+                      ]
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -147,10 +218,26 @@
         "title": "Names used in Apple Home",
         "type": "object",
         "properties": {
-          "pause": { "title": "Pause switch", "type": "string", "placeholder": "Pause" },
-          "schedule": { "title": "Schedule switch", "type": "string", "placeholder": "Schedule" },
-          "connected": { "title": "Connected sensor", "type": "string", "placeholder": "Connected" },
-          "restart": { "title": "Restart switch", "type": "string", "placeholder": "Restart Router" }
+          "pause": {
+            "title": "Pause switch",
+            "type": "string",
+            "placeholder": "Pause"
+          },
+          "schedule": {
+            "title": "Schedule switch",
+            "type": "string",
+            "placeholder": "Schedule"
+          },
+          "connected": {
+            "title": "Connected sensor",
+            "type": "string",
+            "placeholder": "Connected"
+          },
+          "restart": {
+            "title": "Restart switch",
+            "type": "string",
+            "placeholder": "Restart Router"
+          }
         }
       },
       "pollInterval": {
