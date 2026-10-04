@@ -10,12 +10,48 @@ const { normMac, ruleMacs, deviceView } = require('../lib/parental');
 const { describe } = require('../lib/schedule');
 
 async function readRouter(client) {
+  const base = [{ action: ACTIONS.GET_PARENTAL }, { action: ACTIONS.GET_DEVICES }];
   try {
-    return await client.transaction([{ action: ACTIONS.GET_PARENTAL }, { action: ACTIONS.GET_DEVICES }]);
+    // The LAN settings carry the fixed-IP (DHCP reservation) list.
+    return await client.transaction([...base, { action: ACTIONS.GET_LAN }]);
+  } catch (e) {
+    if (e.code === 'UNAUTHORIZED' || e.code === 'UNREACHABLE' || e.code === 'TIMEOUT') throw e;
+  }
+  try {
+    return await client.transaction(base);
   } catch (e) {
     if (e.code !== '_ErrorUnknownAction') throw e;
     return client.transaction([{ action: ACTIONS.GET_PARENTAL }, { action: ACTIONS.GET_DEVICES_LEGACY }]);
   }
+}
+
+function ipToNumber(ip) {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(ip || '').trim());
+  if (!m || m.slice(1).some((x) => Number(x) > 255)) return null;
+  return m.slice(1).reduce((n, x) => n * 256 + Number(x), 0);
+}
+
+/** Can this address be handed to a device on the router's network? */
+function usableAddress(ip, lan) {
+  const addr = ipToNumber(ip);
+  const routerAddr = ipToNumber(lan.ipAddress);
+  const bits = Number(lan.networkPrefixLength);
+  if (addr === null || routerAddr === null || !(bits >= 8 && bits <= 30)) return false;
+  const size = 2 ** (32 - bits);
+  const network = Math.floor(routerAddr / size) * size;
+  return addr > network && addr < network + size - 1 && addr !== routerAddr;
+}
+
+/** The router only accepts host-name style labels for a reservation: letters, digits and dashes. */
+function reservationLabel(name, mac, max) {
+  const clean = String(name || '').normalize('NFKD').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const label = clean || `device-${mac.replace(/:/g, '').slice(-6)}`;
+  return label.slice(0, max > 0 ? max : 63).replace(/-+$/g, '');
+}
+
+function reservationList(lan) {
+  const list = lan && lan.dhcpSettings && Array.isArray(lan.dhcpSettings.reservations) ? lan.dhcpSettings.reservations : [];
+  return list.map((r) => ({ mac: normMac(r.macAddress), ip: r.ipAddress, label: r.description || '' })).filter((r) => r.mac && r.ip);
 }
 
 /** Everything the settings screen needs to know about the network, in a compact form. */
@@ -24,7 +60,8 @@ async function listDevices(body) {
   const password = String((body && body.password) || '');
   if (!host || !password) throw new Error('Enter the router address and the admin password first.');
   const client = new JnapClient({ host, port: body.port, username: body.username, password, timeout: 15000 });
-  const [settings, list] = await readRouter(client);
+  const [settings, list, lan] = await readRouter(client);
+  const reserved = new Map(reservationList(lan).map((r) => [r.mac, r.ip]));
 
   const devices = [];
   for (const d of Array.isArray(list.devices) ? list.devices : []) {
@@ -44,6 +81,8 @@ async function listDevices(body) {
       macs: [...macs],
       online: (d.connections || []).length > 0,
       ip: (connection && connection.ipAddress) || '',
+      ipMac: (connection && normMac(connection.macAddress)) || [...macs][0], // the address the IP belongs to
+      fixedIp: [...macs].map((m) => reserved.get(m)).find(Boolean) || '',
     });
   }
 
@@ -60,7 +99,62 @@ async function listDevices(body) {
     rules,
     maxRules: Number(settings.maxRules) || 0,
     parentalEnabled: settings.isParentalControlEnabled !== false,
+    // null when this router does not report its LAN settings: fixed addresses are then left alone
+    dhcp: lan ? { enabled: lan.isDHCPEnabled !== false, reservations: reservationList(lan).length } : null,
   };
+}
+
+/**
+ * Give devices a fixed IP address (a DHCP reservation), or release it. The router keeps the list inside
+ * its LAN settings and only accepts the whole block, so everything else is sent back exactly as it was read.
+ * body.changes: [{ mac, reserve: true|false, ip, name }]
+ */
+async function setFixedAddresses(body) {
+  const host = String((body && body.host) || '').trim();
+  const password = String((body && body.password) || '');
+  if (!host || !password) throw new Error('Enter the router address and the admin password first.');
+  const changes = Array.isArray(body.changes) ? body.changes : [];
+  if (!changes.length) throw new Error('Nothing to change.');
+  const client = new JnapClient({ host, port: body.port, username: body.username, password, timeout: 20000 });
+
+  const lan = await client.call(ACTIONS.GET_LAN);
+  const dhcp = lan.dhcpSettings;
+  if (!dhcp || !lan.ipAddress || !Array.isArray(dhcp.reservations)) throw new Error('The router did not report its address settings.');
+  if (lan.isDHCPEnabled === false) throw new Error('The router is not handing out addresses (DHCP is off), so it cannot keep one fixed.');
+
+  let list = dhcp.reservations.map((r) => ({ ...r }));
+  for (const change of changes) {
+    const mac = normMac(change && change.mac);
+    if (!mac) throw new Error('A device address (MAC) is not valid.');
+    list = list.filter((r) => normMac(r.macAddress) !== mac);
+    if (!change.reserve) continue;
+    const ip = String(change.ip || '').trim();
+    if (!usableAddress(ip, lan)) throw new Error(`${ip || 'This address'} is not an address a device can have on this network.`);
+    const clash = list.find((r) => r.ipAddress === ip);
+    if (clash) throw new Error(`${ip} is already kept for ${clash.description || clash.macAddress}.`);
+    list.push({ macAddress: mac, ipAddress: ip, description: reservationLabel(change.name, mac, Number(lan.maxDHCPReservationDescriptionLength)) });
+  }
+
+  let sideEffects = [];
+  if (JSON.stringify(list) !== JSON.stringify(dhcp.reservations)) {
+    const sent = await client.send(ACTIONS.SET_LAN, {
+      ipAddress: lan.ipAddress,
+      networkPrefixLength: lan.networkPrefixLength,
+      hostName: lan.hostName,
+      isDHCPEnabled: lan.isDHCPEnabled,
+      dhcpSettings: { ...dhcp, reservations: list },
+    });
+    sideEffects = sent.sideEffects;
+  }
+
+  // Read the list back, so the screen shows what the router really stored.
+  let reservations = list.map((r) => ({ mac: normMac(r.macAddress), ip: r.ipAddress, label: r.description }));
+  let verified = false;
+  try {
+    reservations = reservationList(await client.call(ACTIONS.GET_LAN));
+    verified = true;
+  } catch (e) { /* the router may be busy applying the change */ }
+  return { reservations, sideEffects, verified };
 }
 
 const MAX_NAME = 64;
@@ -81,7 +175,7 @@ async function renameDevice(body) {
   return { id, name };
 }
 
-const handlers = { '/devices': listDevices, '/rename': renameDevice };
+const handlers = { '/devices': listDevices, '/rename': renameDevice, '/fixed-ip': setFixedAddresses };
 
 function start() {
   if (!process.send) {
@@ -105,4 +199,4 @@ function start() {
 
 if (require.main === module) start();
 
-module.exports = { listDevices, renameDevice };
+module.exports = { listDevices, renameDevice, setFixedAddresses, reservationLabel, usableAddress };

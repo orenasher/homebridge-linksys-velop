@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0
+
+- Every device in the settings screen shows whether its IP address is fixed or changing.
+- Keep a device's current IP address fixed (a DHCP reservation on the router), or release it, from the same screen.
+
 ## 1.3.0
 
 - Rename the devices on the router from the settings screen: type a name next to each device and it is saved on the router right away.

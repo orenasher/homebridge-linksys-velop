@@ -43,6 +43,14 @@ function fixture() {
       ],
       maxRuleDescriptionLength: 32, maxRuleMACAddresses: 10, maxRuleBlockedURLLength: 32, maxRuleBlockedURLs: 10, maxRules: 14,
     },
+    lan: {
+      minNetworkPrefixLength: 16, maxNetworkPrefixLength: 30, minAllowedDHCPLeaseMinutes: 1, maxAllowedDHCPLeaseMinutes: 525600,
+      maxDHCPReservationDescriptionLength: 63, hostName: 'Linksys00001', isDHCPEnabled: true, networkPrefixLength: 24, ipAddress: '10.0.0.1',
+      dhcpSettings: {
+        firstClientIPAddress: '10.0.0.10', lastClientIPAddress: '10.0.0.254', leaseMinutes: 1440, dnsServer1: '1.1.1.1',
+        reservations: [{ macAddress: MAC.consoleC, ipAddress: '10.0.0.60', description: 'PS5-CC0001' }],
+      },
+    },
     devices: [
       device('id-a', 'PS5-AA0001', MAC.consoleA, { online: true, userName: 'PlayStation (סלון)', props: [{ name: 'showInPCList', value: 'true' }] }),
       device('id-b1', 'PS5-BB0001', MAC.consoleBLan, { online: true, userName: 'PlayStation (מרתף)', props: [{ name: 'showInPCList', value: 'true' }] }),
@@ -95,6 +103,25 @@ class MockRouter {
         }
         for (const n of request.propertiesToRemove || []) d.properties = d.properties.filter((x) => x.name !== n);
         return { result: 'OK', output: {} };
+      }
+      case 'router/GetLANSettings':
+        return { result: 'OK', output: JSON.parse(JSON.stringify(s.lan)) };
+      case 'router/SetLANSettings': {
+        // Mirrors what the real router insists on: every field present, host-name style descriptions, no duplicates.
+        const allowed = ['ipAddress', 'networkPrefixLength', 'hostName', 'isDHCPEnabled', 'dhcpSettings'];
+        if (Object.keys(request).some((k) => !allowed.includes(k)) || allowed.some((k) => !(k in request))) return { result: 'ErrorInvalidInput' };
+        const d = request.dhcpSettings;
+        if (!d.firstClientIPAddress || !d.lastClientIPAddress || !d.leaseMinutes || !Array.isArray(d.reservations)) return { result: 'ErrorInvalidInput' };
+        const ips = new Set();
+        const macs = new Set();
+        for (const r of d.reservations) {
+          if (!/^[a-zA-Z0-9-]{1,63}$/.test(r.description) || /^-|-$/.test(r.description)) return { result: 'ErrorInvalidDescription' };
+          if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(r.macAddress) || !/^10\.0\.0\.\d+$/.test(r.ipAddress)) return { result: 'ErrorInvalidInput' };
+          if (ips.has(r.ipAddress) || macs.has(r.macAddress)) return { result: 'ErrorDuplicateReservation' };
+          ips.add(r.ipAddress); macs.add(r.macAddress);
+        }
+        s.lan = { ...s.lan, ...JSON.parse(JSON.stringify(request)) };
+        return { result: 'OK', output: {}, ...(this.lanSideEffects ? { sideEffects: this.lanSideEffects } : {}) };
       }
       case 'core/Reboot':
         this.rebooted++;

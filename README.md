@@ -46,6 +46,22 @@ field empty goes back to the name the device reports itself.
 These are the router's names. The names of the tiles in Apple Home are set
 separately, in each device's card.
 
+### Fixed IP addresses
+
+Every device in the settings screen carries a small label: **fixed IP** when the
+router always gives it the same address (a DHCP reservation), **changing IP** when
+it does not. In the same rename mode, **Keep this IP** makes the address the device
+has right now permanent, and **Release IP** lets it change again.
+
+- A device has to be connected to be given a fixed address, because the address it
+  has now is the one that is kept.
+- The router stores this list inside its network settings and only accepts the whole
+  block at once. The plugin sends everything else back exactly as it read it, and
+  reads the list again afterwards to show what the router really stored.
+- Taps made close together are written to the router in one go.
+- The router labels each reservation with a host-name style name (letters, digits
+  and dashes). The plugin derives it from the name the device reports.
+
 ### One tile or many
 
 By default every device is its own tile in the Home app. If that is too many tiles,

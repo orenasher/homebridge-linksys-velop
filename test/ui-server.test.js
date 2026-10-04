@@ -120,3 +120,108 @@ test('settings screen server refuses bad rename requests', async (t) => {
   assert.ok(!JSON.stringify(wrong).includes('Wr0ng'));
   assert.ok(!('userDeviceName' in router.props('id-e')), 'nothing was written');
 });
+
+// ---------------------------------------------------------------- fixed IP addresses
+
+const lanSets = (router) => router.calls.filter((c) => c.action === 'router/SetLANSettings');
+
+test('settings screen server reports which devices have a fixed IP', async (t) => {
+  const router = new MockRouter('secret');
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const { data } = await ui.request('/devices', { host: `127.0.0.1:${port}`, password: 'secret' });
+  assert.equal(data.devices.find((d) => d.macs.includes(MAC.consoleC)).fixedIp, '10.0.0.60');
+  assert.equal(data.devices.find((d) => d.macs.includes(MAC.phone)).fixedIp, '');
+  assert.deepEqual(data.dhcp, { enabled: true, reservations: 1 });
+});
+
+test('settings screen server makes an IP fixed and releases it, leaving the other LAN settings alone', async (t) => {
+  const router = new MockRouter('secret');
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const login = { host: `127.0.0.1:${port}`, password: 'secret' };
+  const before = JSON.parse(JSON.stringify(router.state.lan));
+
+  const one = await ui.request('/fixed-ip', { ...login, changes: [{ mac: MAC.phone.toLowerCase(), reserve: true, ip: '10.0.0.50', name: 'האייפון של אבא' }] });
+  assert.equal(one.success, true);
+  assert.equal(one.data.verified, true);
+  assert.deepEqual(one.data.sideEffects, []);
+  assert.deepEqual(router.state.lan.dhcpSettings.reservations, [
+    { macAddress: MAC.consoleC, ipAddress: '10.0.0.60', description: 'PS5-CC0001' },
+    { macAddress: MAC.phone, ipAddress: '10.0.0.50', description: 'device-EE0001' },
+  ]);
+  const rest = (lan) => ({ ...lan, dhcpSettings: { ...lan.dhcpSettings, reservations: null } });
+  assert.deepEqual(rest(router.state.lan), rest(before), 'address range, DNS, host name and the rest are untouched');
+  assert.deepEqual(Object.keys(lanSets(router)[0].request).sort(), ['dhcpSettings', 'hostName', 'ipAddress', 'isDHCPEnabled', 'networkPrefixLength']);
+  assert.equal(lanSets(router)[0].request.dhcpSettings.dnsServer1, '1.1.1.1');
+
+  // several changes are written in one go
+  const many = await ui.request('/fixed-ip', { ...login, changes: [
+    { mac: MAC.consoleA, reserve: true, ip: '10.0.0.70', name: 'PlayStation (סלון)' },
+    { mac: MAC.consoleC, reserve: false },
+    { mac: MAC.phone, reserve: true, ip: '10.0.0.51', name: 'iPhone' },
+  ] });
+  assert.equal(many.success, true);
+  assert.equal(lanSets(router).length, 2);
+  assert.deepEqual(many.data.reservations, [
+    { mac: MAC.consoleA, ip: '10.0.0.70', label: 'PlayStation' },
+    { mac: MAC.phone, ip: '10.0.0.51', label: 'iPhone' },
+  ]);
+
+  // releasing something that is not fixed writes nothing
+  const noop = await ui.request('/fixed-ip', { ...login, changes: [{ mac: MAC.plug, reserve: false }] });
+  assert.equal(noop.success, true);
+  assert.equal(lanSets(router).length, 2);
+  assert.equal(router.calls.filter((c) => c.action.includes('ParentalControlSettings') && c.action.includes('/Set')).length, 0);
+});
+
+test('settings screen server refuses fixed addresses that would break something', async (t) => {
+  const router = new MockRouter('secret');
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const login = { host: `127.0.0.1:${port}`, password: 'secret' };
+  const refuse = async (change, pattern) => {
+    const r = await ui.request('/fixed-ip', { ...login, changes: [change] });
+    assert.equal(r.success, false, JSON.stringify(change));
+    assert.match(r.data.message, pattern);
+  };
+  await refuse({ mac: MAC.phone, reserve: true, ip: '10.0.0.60', name: 'x' }, /already kept for PS5-CC0001/);
+  await refuse({ mac: MAC.phone, reserve: true, ip: '10.0.0.1', name: 'x' }, /not an address a device can have/);
+  await refuse({ mac: MAC.phone, reserve: true, ip: '10.0.0.255', name: 'x' }, /not an address/);
+  await refuse({ mac: MAC.phone, reserve: true, ip: '192.168.1.5', name: 'x' }, /not an address/);
+  await refuse({ mac: MAC.phone, reserve: true, ip: '', name: 'x' }, /not an address/);
+  await refuse({ mac: 'zz', reserve: true, ip: '10.0.0.50' }, /not valid/);
+  const empty = await ui.request('/fixed-ip', { ...login, changes: [] });
+  assert.equal(empty.success, false);
+  assert.equal(lanSets(router).length, 0, 'nothing was written');
+
+  router.state.lan.isDHCPEnabled = false;
+  await refuse({ mac: MAC.phone, reserve: true, ip: '10.0.0.50', name: 'x' }, /DHCP is off/);
+  assert.equal(lanSets(router).length, 0);
+});
+
+test('settings screen server passes on what the router says the change disturbs', async (t) => {
+  const router = new MockRouter('secret');
+  router.lanSideEffects = ['WirelessInterruption'];
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const r = await ui.request('/fixed-ip', { host: `127.0.0.1:${port}`, password: 'secret', changes: [{ mac: MAC.phone, reserve: true, ip: '10.0.0.50', name: 'iPhone' }] });
+  assert.deepEqual(r.data.sideEffects, ['WirelessInterruption']);
+});
+
+test('settings screen server still lists devices on a router without LAN settings', async (t) => {
+  const router = new MockRouter('secret');
+  const realRun = router.run.bind(router);
+  router.run = (action, request) => (action.endsWith('GetLANSettings') ? { result: '_ErrorUnknownAction' } : realRun(action, request));
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const { success, data } = await ui.request('/devices', { host: `127.0.0.1:${port}`, password: 'secret' });
+  assert.equal(success, true);
+  assert.equal(data.devices.length, 6);
+  assert.equal(data.dhcp, null);
+});

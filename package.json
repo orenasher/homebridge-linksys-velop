@@ -1,7 +1,7 @@
 {
   "name": "homebridge-linksys-velop",
   "displayName": "Linksys Velop",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Linksys Velop parental controls in Apple Home: pause a device's internet, run one or more schedules, see whether it is connected, restart the router. Pick devices from a list of what is on your network. Built for and tested on the Velop MX4200.",
   "main": "index.js",
   "scripts": {

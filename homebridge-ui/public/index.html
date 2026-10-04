@@ -30,6 +30,9 @@
   .lv .lv-edit { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
   .lv .lv-edit:last-child { border-bottom: 0; }
   .lv .lv-note { font-size: 0.8rem; }
+  .lv .lv-ip { display: inline-block; line-height: 1.5; font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0 0.45rem; margin: 0 0.15rem; white-space: nowrap; }
+  .lv .lv-ip.fixed { border-color: #2fb344; color: #2fb344; opacity: 1; }
+  .lv .lv-fix { margin-top: 0.35rem; }
   .lv .lv-ok { color: #2fb344; }
   .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
   .lv .lv-status { font-size: 0.85rem; margin-top: 0.6rem; }
@@ -88,9 +91,15 @@
       networkHint: 'Tick a device to add it to Apple Home.',
       search: 'Search by name or address',
       onlyOnline: 'Connected now only',
-      renameMode: 'Rename devices on the router',
-      renameTitle: 'Rename devices',
+      renameMode: 'Rename devices and set fixed IPs on the router',
+      renameTitle: 'Names and fixed IPs',
       renameHint: 'Type a name and move on to the next field. It is saved on the router right away and shows in the Linksys app. Leave a field empty to go back to the name the device reports. Names in Apple Home are set separately, in the device card above.',
+      fixedHint: '"Keep this IP" tells the router to always give the device the address it has now. "Release IP" lets the address change again.',
+      ipFixed: 'fixed IP',
+      ipDynamic: 'changing IP',
+      makeFixed: 'Keep this IP',
+      release: 'Release IP',
+      applying: 'The router is applying the change. The network may pause for a moment.',
       saving: 'saving...',
       saved: 'saved',
       renameFail: 'not saved: {msg}',
@@ -162,8 +171,14 @@
       networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home.',
       search: 'חיפוש לפי שם או כתובת',
       onlyOnline: 'רק מחוברים כרגע',
-      renameMode: 'שינוי שמות המכשירים בראוטר',
-      renameTitle: 'שינוי שמות',
+      renameMode: 'שינוי שמות וקיבוע כתובות IP בראוטר',
+      renameTitle: 'שמות וכתובות IP קבועות',
+      fixedHint: '"קבע את ה-IP" מורה לראוטר לתת למכשיר תמיד את הכתובת שיש לו עכשיו. "שחרר IP" מאפשר לכתובת להשתנות שוב.',
+      ipFixed: 'IP קבוע',
+      ipDynamic: 'IP משתנה',
+      makeFixed: 'קבע את ה-IP',
+      release: 'שחרר IP',
+      applying: 'הראוטר מחיל את השינוי. ייתכן שהרשת תיעצר לרגע.',
       renameHint: 'מקלידים שם ועוברים לשדה הבא. השם נשמר מיד בראוטר ומופיע באפליקציית Linksys. שדה ריק מחזיר את השם שהמכשיר מדווח בעצמו. שמות ב-Apple Home נקבעים בנפרד, בכרטיס המכשיר למעלה.',
       saving: 'שומר...',
       saved: 'נשמר',
@@ -326,6 +341,30 @@
       </div>`;
   }
 
+  /** "10.0.0.5 [fixed IP] · AA:BB:.." - the address, whether the router keeps it fixed, and the MAC addresses. */
+  function addressLine(d, macs, short) {
+    const parts = [];
+    if (d && (d.ip || d.fixedIp)) {
+      let tag = '';
+      if (router && router.dhcp) {
+        const moved = d.fixedIp && d.ip && d.fixedIp !== d.ip ? ` ${d.fixedIp}` : '';
+        const dir = lang === 'he' ? 'rtl' : 'ltr';
+        tag = d.fixedIp ? `<span class="lv-ip fixed" dir="${dir}">${esc(t('ipFixed') + moved)}</span>` : `<span class="lv-ip" dir="${dir}">${esc(t('ipDynamic'))}</span>`;
+      }
+      parts.push(`${esc(d.ip || d.fixedIp)} ${tag}`);
+      if (short) return parts[0]; // the header of a card is narrow: the MAC addresses are inside the card
+    }
+    parts.push(esc((macs || (d && d.macs) || []).join(', ')));
+    return parts.join(' · ');
+  }
+
+  /** The address line of a row in rename mode, with the button that makes the address fixed or releases it. */
+  function fixBlock(d) {
+    const can = router && router.dhcp && router.dhcp.enabled && (d.fixedIp || d.ip);
+    const button = !can ? '' : `<button type="button" class="btn btn-sm ${d.fixedIp ? 'btn-secondary' : 'btn-primary'} lv-fix" data-act="fix" data-mac="${esc(d.macs[0])}" ${d.busy ? 'disabled' : ''}>${esc(t(d.fixedIp ? 'release' : 'makeFixed'))}</button>`;
+    return `<div class="lv-sub lv-ltr" style="margin-top:.25rem">${addressLine(d)}</div>${button}`;
+  }
+
   function renderChosen(item, i) {
     const d = item.device;
     const name = d.name || routerName(item.macs) || item.macs[0];
@@ -336,7 +375,7 @@
         <span class="lv-dot ${online ? 'on' : ''}" title="${esc(t(online ? 'online' : 'offline'))}"></span>
         <span class="lv-grow">
           <div class="lv-name">${esc(name)}</div>
-          <div class="lv-sub lv-ltr">${esc(item.macs.join(', '))}</div>
+          <div class="lv-sub lv-ltr">${addressLine(item.macs.map(routerDevice).find(Boolean), item.macs, true)}</div>
         </span>
         ${item.auto ? `<span class="lv-tag">${esc(t('auto'))}</span>` : ''}
         ${chevron}
@@ -374,14 +413,13 @@
       .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
       .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~'));
     const shown = list.slice(0, view.limit);
-    const details = (d) => esc([d.ip, d.macs.join(', ')].filter(Boolean).join(' · '));
     const pickRow = (d) => `
           <label class="lv-pick">
             <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}">
             <span class="lv-dot ${d.online ? 'on' : ''}"></span>
             <span class="lv-grow">
               <div class="lv-name">${esc(d.name || d.macs[0])}</div>
-              <div class="lv-sub lv-ltr">${details(d)}</div>
+              <div class="lv-sub lv-ltr">${addressLine(d)}</div>
             </span>
           </label>`;
     const editRow = (d) => `
@@ -391,13 +429,13 @@
               <input class="form-control" type="text" maxlength="64" enterkeyhint="next" autocomplete="off" autocapitalize="sentences"
                 placeholder="${esc(d.hostname || d.macs[0])}" value="${esc(d.name === d.hostname ? '' : d.name)}" aria-label="${esc(d.hostname || d.macs[0])}"
                 ${d.id ? '' : 'disabled'} data-ch="rename" data-mac="${esc(d.macs[0])}">
-              <div class="lv-sub lv-ltr" style="margin-top:.25rem">${details(d)}</div>
+              <div data-fix="${esc(d.macs[0])}">${fixBlock(d)}</div>
               <div class="lv-note" data-status="${esc(d.macs[0])}"></div>
             </span>
           </div>`;
     return `
       <h5>${esc(t(view.rename ? 'renameTitle' : 'network'))}</h5>
-      <p class="lv-hint">${esc(t(view.rename ? 'renameHint' : 'networkHint'))}</p>
+      <p class="lv-hint">${esc(t(view.rename ? 'renameHint' : 'networkHint'))}${view.rename && router.dhcp && router.dhcp.enabled ? ` ${esc(t('fixedHint'))}` : ''}</p>
       <input class="form-control" type="search" placeholder="${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
       <div class="form-check form-switch" style="margin:.6rem 0 .3rem">
         <input class="form-check-input" type="checkbox" id="lv-online" ${view.onlyOnline ? 'checked' : ''} data-ch="only-online">
@@ -522,6 +560,60 @@
     }
   }
 
+  // Fixed IP addresses. Taps made close together are sent to the router as one change,
+  // because the router rewrites its whole address table every time.
+  const fixQueue = new Map();
+  let fixTimer = null;
+  let fixChain = Promise.resolve();
+  const note = (mac, text, cls) => {
+    const el = root.querySelector(`[data-status="${mac}"]`);
+    if (el) { el.textContent = text; el.className = `lv-note ${cls}`; }
+  };
+  const redrawFix = (d) => {
+    const el = root.querySelector(`[data-fix="${d.macs[0]}"]`);
+    if (el) el.innerHTML = fixBlock(d);
+  };
+
+  function toggleFixed(mac) {
+    const d = routerDevice(mac);
+    if (!d || d.busy) return;
+    const reserve = !d.fixedIp;
+    if (reserve && !d.ip) return;
+    fixQueue.set(d.macs[0], { device: d, reserve });
+    d.busy = true;
+    redrawFix(d);
+    note(d.macs[0], t('saving'), '');
+    clearTimeout(fixTimer);
+    fixTimer = setTimeout(() => { fixChain = fixChain.then(sendFixed); }, 1200);
+  }
+
+  async function sendFixed() {
+    const batch = [...fixQueue.values()];
+    fixQueue.clear();
+    if (!batch.length) return;
+    const changes = [];
+    for (const { device: d, reserve } of batch) {
+      if (reserve) changes.push({ mac: d.ipMac || d.macs[0], reserve: true, ip: d.ip, name: d.hostname || d.name });
+      else d.macs.forEach((m) => changes.push({ mac: m, reserve: false }));
+    }
+    let failure = '';
+    let disturbed = false;
+    try {
+      const result = await hb.request('/fixed-ip', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password, changes });
+      const byMac = new Map(result.reservations.map((r) => [r.mac, r.ip]));
+      for (const d of router.devices) d.fixedIp = d.macs.map((m) => byMac.get(m)).find(Boolean) || '';
+      disturbed = (result.sideEffects || []).length > 0;
+    } catch (e) {
+      failure = (e && (e.message || (e.error && e.error.message))) || String(e);
+    }
+    for (const { device: d } of batch) {
+      d.busy = false;
+      redrawFix(d);
+      if (failure) note(d.macs[0], t('renameFail', { msg: failure }), 'lv-err');
+      else note(d.macs[0], `${t('saved')} ✓${disturbed ? ` ${t('applying')}` : ''}`, 'lv-ok');
+    }
+  }
+
   function removeItem(item) {
     cfg.devices = (cfg.devices || []).filter((d) => d !== item.device);
     // A device that has a rule on the router would be added again automatically, so hide it.
@@ -545,6 +637,7 @@
     const item = current[Number(el.dataset.i)];
     const k = Number(el.dataset.k);
     if (act === 'connect') { connect(); return; }
+    if (act === 'fix') { toggleFixed(el.dataset.mac); return; }
     if (act === 'more') { view.limit += PAGE; render(); return; }
     if (act === 'options') { view.options = !view.options; render(); return; }
     if (!item) return;
