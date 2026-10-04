@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+- Clean up old devices: remove devices that are no longer connected from the router's list, with a preview of what will be removed.
+
 ## 1.4.0
 
 - Every device in the settings screen shows whether its IP address is fixed or changing.

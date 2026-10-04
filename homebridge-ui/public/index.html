@@ -33,6 +33,7 @@
   .lv .lv-ip { display: inline-block; line-height: 1.5; font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0 0.45rem; margin: 0 0.15rem; white-space: nowrap; }
   .lv .lv-ip.fixed { border-color: #2fb344; color: #2fb344; opacity: 1; }
   .lv .lv-fix { margin-top: 0.35rem; }
+  .lv .lv-scroll { max-height: 22rem; overflow-y: auto; border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 0.5rem; padding: 0 0.6rem; margin: 0.6rem 0; }
   .lv .lv-ok { color: #2fb344; }
   .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
   .lv .lv-status { font-size: 0.85rem; margin-top: 0.6rem; }
@@ -105,6 +106,18 @@
       renameFail: 'not saved: {msg}',
       nothing: 'No devices match.',
       more: 'Show {n} more',
+      cleanTitle: 'Clean up old devices',
+      cleanCount: '{n} devices are not connected and can be removed from the router\'s list.',
+      cleanHint: 'Devices that are connected, have a fixed IP, are under Parental Controls or are in Apple Home are never listed here. A removed device that connects again simply shows up as new, without its custom name.',
+      cleanNone: 'Nothing to clean up.',
+      customName: 'named',
+      selectAll: 'Select all',
+      selectNone: 'Select none',
+      cleanButton: 'Remove {n} devices',
+      cleanConfirm: 'Tap again to remove {n} devices. This cannot be undone.',
+      cleanProgress: 'Removed {done} of {n}...',
+      cleanDone: 'Removed {done} devices.',
+      cleanFailed: '{n} could not be removed ({msg}).',
       options: 'More options',
       autoDiscover: 'Add every device that is under Parental Controls on the router',
       reboot: 'Add a switch that restarts the router',
@@ -185,6 +198,18 @@
       renameFail: 'לא נשמר: {msg}',
       nothing: 'אין מכשירים מתאימים.',
       more: 'הצג עוד {n}',
+      cleanTitle: 'ניקוי מכשירים ישנים',
+      cleanCount: '{n} מכשירים אינם מחוברים וניתן למחוק אותם מרשימת הראוטר.',
+      cleanHint: 'מכשירים מחוברים, מכשירים עם IP קבוע, מכשירים בבקרת הורים ומכשירים שנמצאים ב-Apple Home לא מופיעים כאן אף פעם. מכשיר שנמחק ומתחבר שוב פשוט יופיע כחדש, בלי השם שנתת לו.',
+      cleanNone: 'אין מה לנקות.',
+      customName: 'שם מותאם',
+      selectAll: 'סמן הכול',
+      selectNone: 'נקה סימון',
+      cleanButton: 'מחק {n} מכשירים',
+      cleanConfirm: 'לחץ שוב כדי למחוק {n} מכשירים. אי אפשר לבטל.',
+      cleanProgress: 'נמחקו {done} מתוך {n}...',
+      cleanDone: 'נמחקו {done} מכשירים.',
+      cleanFailed: '{n} לא נמחקו ({msg}).',
       options: 'אפשרויות נוספות',
       autoDiscover: 'הוסף כל מכשיר שנמצא בבקרת הורים בראוטר',
       reboot: 'הוסף מתג שמפעיל מחדש את הראוטר',
@@ -223,7 +248,9 @@
   let error = '';
   let busy = false;
   let current = []; // the "In Apple Home" list as last rendered
-  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false };
+  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false, clean: false };
+  // Cleaning up old devices: which ones are ticked (null = the default choice), and where the removal stands.
+  const clean = { picked: null, confirm: false, busy: false, message: '', error: '' };
 
   const t = (key, vars) => {
     let text = (TEXT[lang] && TEXT[lang][key]) || TEXT.en[key] || key;
@@ -453,6 +480,86 @@
       </div>`;
   }
 
+  /** Old devices the router can forget: not connected, and not used for anything. */
+  function staleDevices(taken) {
+    if (!router) return [];
+    return router.devices
+      .filter((d) => d.id && !d.online && !d.fixedIp && !d.macs.some((m) => routerRule(m) || taken.has(m)))
+      .sort((a, b) => (a.custom - b.custom) || (a.name || '~').localeCompare(b.name || '~'));
+  }
+  const cleanPicked = (list) => list.filter((d) => (clean.picked ? clean.picked.has(d.id) : !d.custom));
+
+  function renderClean(taken) {
+    if (!router) return '';
+    const list = staleDevices(taken);
+    const picked = cleanPicked(list);
+    const ids = new Set(picked.map((d) => d.id));
+    const body = !view.clean ? '' : `<div class="lv-body">
+        <p class="lv-hint" style="margin-top:.7rem">${esc(list.length ? t('cleanCount', { n: list.length }) : t('cleanNone'))} ${esc(t('cleanHint'))}</p>
+        ${!list.length ? '' : `
+          <div class="lv-row">
+            <button type="button" class="btn btn-sm btn-secondary" data-act="clean-all" ${clean.busy ? 'disabled' : ''}>${esc(t('selectAll'))}</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-act="clean-none" ${clean.busy ? 'disabled' : ''}>${esc(t('selectNone'))}</button>
+          </div>
+          <div class="lv-scroll" id="lv-clean-list">
+            ${list.map((d) => `
+              <label class="lv-pick">
+                <input class="form-check-input" type="checkbox" data-ch="clean-pick" data-id="${esc(d.id)}" ${ids.has(d.id) ? 'checked' : ''} ${clean.busy ? 'disabled' : ''}>
+                <span class="lv-grow">
+                  <div class="lv-name">${esc(d.name || d.macs[0])}</div>
+                  <div class="lv-sub lv-ltr">${esc(d.macs.join(', '))}</div>
+                </span>
+                ${d.custom ? `<span class="lv-tag">${esc(t('customName'))}</span>` : ''}
+              </label>`).join('')}
+          </div>
+          <button type="button" class="btn btn-danger" data-act="clean-run" ${clean.busy || !picked.length ? 'disabled' : ''}>${esc(t(clean.confirm ? 'cleanConfirm' : 'cleanButton', { n: picked.length }))}</button>`}
+        ${clean.message ? `<div class="lv-note lv-ok" id="lv-clean-msg" style="margin-top:.5rem">${esc(clean.message)}</div>` : ''}
+        ${clean.error ? `<div class="lv-err" id="lv-clean-err">${esc(clean.error)}</div>` : ''}
+      </div>`;
+    return `
+      <div class="lv-box ${view.clean ? 'lv-open' : ''}" id="lv-clean" style="margin-top:1.4rem">
+        <button type="button" class="lv-head" data-act="clean-open">
+          <span class="lv-grow lv-name">${esc(t('cleanTitle'))}</span>
+          ${list.length ? `<span class="lv-tag">${list.length}</span>` : ''}
+          ${chevron}
+        </button>${body}
+      </div>`;
+  }
+
+  /** Remove the ticked devices from the router, a few at a time so progress can be shown. */
+  async function runClean() {
+    const taken = new Set(current.flatMap((item) => item.macs));
+    const targets = cleanPicked(staleDevices(taken)).map((d) => d.id);
+    if (!targets.length || clean.busy) return;
+    Object.assign(clean, { busy: true, confirm: false, error: '', message: t('cleanProgress', { done: 0, n: targets.length }) });
+    render();
+    let done = 0;
+    const failed = [];
+    try {
+      for (let i = 0; i < targets.length; i += 20) {
+        const result = await hb.request('/forget', {
+          host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password,
+          ids: targets.slice(i, i + 20), keep: [...taken],
+        });
+        done += result.removed.length;
+        failed.push(...result.failed);
+        const gone = new Set(result.removed);
+        router.devices = router.devices.filter((d) => !gone.has(d.id));
+        clean.message = t('cleanProgress', { done, n: targets.length });
+        const el = root.querySelector('#lv-clean-msg');
+        if (el) el.textContent = clean.message;
+      }
+      clean.message = t('cleanDone', { done });
+      if (failed.length) clean.error = t('cleanFailed', { n: failed.length, msg: [...new Set(failed.map((f) => f.reason))].join(', ') });
+    } catch (e) {
+      clean.message = done ? t('cleanDone', { done }) : '';
+      clean.error = (e && (e.message || (e.error && e.error.message))) || String(e);
+    }
+    clean.busy = false;
+    clean.picked = null;
+    render();
+  }
+
   function renderOptions() {
     const labels = cfg.labels || {};
     const select = (key, value, options) => `<select class="form-select" data-ch="opt" data-key="${key}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${esc(text)}</option>`).join('')}</select>`;
@@ -520,6 +627,7 @@
       <div id="lv-chosen">${current.map(renderChosen).join('')}</div>
 
       ${renderNetwork(taken)}
+      ${renderClean(taken)}
       ${renderOptions()}
       <p class="lv-hint" style="margin-top:1rem">${esc(t('saveNote'))}</p>`;
   }
@@ -638,6 +746,19 @@
     const k = Number(el.dataset.k);
     if (act === 'connect') { connect(); return; }
     if (act === 'fix') { toggleFixed(el.dataset.mac); return; }
+    if (act === 'clean-open') { view.clean = !view.clean; clean.confirm = false; render(); return; }
+    if (act === 'clean-all' || act === 'clean-none') {
+      const all = staleDevices(new Set(current.flatMap((x) => x.macs)));
+      clean.picked = new Set(act === 'clean-all' ? all.map((d) => d.id) : []);
+      clean.confirm = false;
+      render();
+      return;
+    }
+    if (act === 'clean-run') {
+      if (!clean.confirm) { clean.confirm = true; clean.message = ''; clean.error = ''; render(); return; } // first tap only asks
+      runClean();
+      return;
+    }
     if (act === 'more') { view.limit += PAGE; render(); return; }
     if (act === 'options') { view.options = !view.options; render(); return; }
     if (!item) return;
@@ -701,6 +822,18 @@
     const kind = el.dataset.ch;
     if (kind === 'layout') { if (el.value === 'single') cfg.grouping = 'single'; else delete cfg.grouping; push(); render(); return; }
     if (kind === 'rename') { rename(el); return; }
+    if (kind === 'clean-pick') {
+      const all = staleDevices(new Set(current.flatMap((x) => x.macs)));
+      if (!clean.picked) clean.picked = new Set(all.filter((d) => !d.custom).map((d) => d.id));
+      if (el.checked) clean.picked.add(el.dataset.id); else clean.picked.delete(el.dataset.id);
+      clean.confirm = false;
+      const scroll = root.querySelector('#lv-clean-list');
+      const top = scroll ? scroll.scrollTop : 0;
+      render();
+      const again = root.querySelector('#lv-clean-list');
+      if (again) again.scrollTop = top; // keep the place in the list
+      return;
+    }
     if (kind === 'rename-mode') { view.rename = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'pick') { pick(el.dataset.mac); push(); render(); return; }

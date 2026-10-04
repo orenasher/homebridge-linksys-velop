@@ -225,3 +225,79 @@ test('settings screen server still lists devices on a router without LAN setting
   assert.equal(data.devices.length, 6);
   assert.equal(data.dhcp, null);
 });
+
+// ---------------------------------------------------------------- forgetting old devices
+
+function withOldDevices(router) {
+  const old = (id, mac, extra = {}) => ({ deviceID: id, friendlyName: id, knownInterfaces: [{ macAddress: mac }], connections: [], properties: [], ...extra });
+  router.state.devices.push(
+    old('old-1', '02:00:00:01:00:01'),
+    old('old-2', '02:00:00:01:00:02'),
+    old('old-named', '02:00:00:01:00:03', { properties: [{ name: 'userDeviceName', value: 'מחשב ישן' }] }),
+    old('old-kept', '02:00:00:01:00:04'),
+  );
+}
+
+test('settings screen server forgets old devices and nothing else', async (t) => {
+  const router = new MockRouter('secret');
+  withOldDevices(router);
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const login = { host: `127.0.0.1:${port}`, password: 'secret' };
+
+  const list = await ui.request('/devices', login);
+  assert.equal(list.data.devices.find((d) => d.id === 'old-named').custom, true);
+  assert.equal(list.data.devices.find((d) => d.id === 'old-1').custom, false);
+
+  const r = await ui.request('/forget', { ...login, keep: ['02:00:00:01:00:04'],
+    ids: ['old-1', 'old-2', 'old-named', 'old-kept', 'id-e', 'id-c', 'id-b2', 'id-d', 'gone-already'] });
+  assert.equal(r.success, true);
+  assert.deepEqual(r.data.removed.sort(), ['gone-already', 'old-1', 'old-2', 'old-named']);
+  assert.deepEqual(Object.fromEntries(r.data.failed.map((f) => [f.id, f.reason])), {
+    'old-kept': 'in use', // in Apple Home
+    'id-e': 'connected',
+    'id-c': 'in use', // fixed IP and a rule
+    'id-b2': 'in use', // Parental Controls rule
+    'id-d': 'in use',
+  });
+  assert.deepEqual(router.state.devices.map((d) => d.deviceID), ['id-a', 'id-b1', 'id-b2', 'id-c', 'id-d', 'id-e', 'old-kept']);
+  assert.equal(router.calls.filter((c) => /\/Set/.test(c.action)).length, 0, 'no settings were changed');
+});
+
+test('settings screen server keeps going when the router refuses one device', async (t) => {
+  const router = new MockRouter('secret');
+  withOldDevices(router);
+  const realRun = router.run.bind(router);
+  // old-2 comes back online between our check and the removal
+  let reads = 0;
+  router.run = (action, request) => {
+    if (action.endsWith('GetDevices3') && ++reads === 1) {
+      const out = realRun(action, request);
+      router.state.devices.find((d) => d.deviceID === 'old-2').connections = [{ macAddress: '02:00:00:01:00:02', ipAddress: '10.0.0.9' }];
+      return out;
+    }
+    return realRun(action, request);
+  };
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const r = await ui.request('/forget', { host: `127.0.0.1:${port}`, password: 'secret', ids: ['old-1', 'old-2', 'old-kept'] });
+  assert.deepEqual(r.data.removed.sort(), ['old-1', 'old-kept']);
+  assert.deepEqual(r.data.failed, [{ id: 'old-2', reason: 'ErrorDeviceNotOffline' }]);
+});
+
+test('settings screen server refuses bad forget requests', async (t) => {
+  const router = new MockRouter('secret');
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+  const login = { host: `127.0.0.1:${port}`, password: 'secret' };
+  assert.equal((await ui.request('/forget', { ...login, ids: [] })).success, false);
+  const many = await ui.request('/forget', { ...login, ids: Array.from({ length: 31 }, (_, i) => `x${i}`) });
+  assert.match(many.data.message, /At most 30/);
+  const wrong = await ui.request('/forget', { host: login.host, password: 'Wr0ng!pass', ids: ['id-c'] });
+  assert.equal(wrong.success, false);
+  assert.ok(!JSON.stringify(wrong).includes('Wr0ng'));
+  assert.equal(router.state.devices.length, 6);
+});

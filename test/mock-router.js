@@ -104,6 +104,13 @@ class MockRouter {
         for (const n of request.propertiesToRemove || []) d.properties = d.properties.filter((x) => x.name !== n);
         return { result: 'OK', output: {} };
       }
+      case 'devicelist/DeleteDevice': {
+        const d = s.devices.find((x) => x.deviceID === request.deviceID);
+        if (!d) return { result: 'ErrorUnknownDevice' };
+        if ((d.connections || []).length) return { result: 'ErrorDeviceNotOffline' }; // the router only forgets devices that are gone
+        s.devices = s.devices.filter((x) => x !== d);
+        return { result: 'OK', output: {} };
+      }
       case 'router/GetLANSettings':
         return { result: 'OK', output: JSON.parse(JSON.stringify(s.lan)) };
       case 'router/SetLANSettings': {

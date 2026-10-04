@@ -78,6 +78,7 @@ async function listDevices(body) {
       id: d.deviceID || '',
       name: String((user && user.value) || d.friendlyName || '').replace(/\uFFFD/g, '').replace(/\s+/g, ' ').trim(),
       hostname: d.friendlyName || '',
+      custom: !!user, // has a name someone typed, as opposed to the name the device reports
       macs: [...macs],
       online: (d.connections || []).length > 0,
       ip: (connection && connection.ipAddress) || '',
@@ -175,7 +176,66 @@ async function renameDevice(body) {
   return { id, name };
 }
 
-const handlers = { '/devices': listDevices, '/rename': renameDevice, '/fixed-ip': setFixedAddresses };
+const MAX_DELETE = 30;
+
+/**
+ * Forget old devices: remove them from the router's device list. The router itself only lets go of
+ * devices that are not connected. On top of that, nothing with a fixed IP or a Parental Controls rule
+ * is removed, nor anything in body.keep (the devices that are in Apple Home).
+ * Called in small batches so the settings screen can show progress.
+ */
+async function forgetDevices(body) {
+  const host = String((body && body.host) || '').trim();
+  const password = String((body && body.password) || '');
+  if (!host || !password) throw new Error('Enter the router address and the admin password first.');
+  const ids = [...new Set((Array.isArray(body.ids) ? body.ids : []).map((x) => String(x || '').trim()).filter(Boolean))];
+  if (!ids.length) throw new Error('Nothing to remove.');
+  if (ids.length > MAX_DELETE) throw new Error(`At most ${MAX_DELETE} devices at a time.`);
+  const keep = new Set((Array.isArray(body.keep) ? body.keep : []).map(normMac).filter(Boolean));
+  const client = new JnapClient({ host, port: body.port, username: body.username, password, timeout: 20000 });
+
+  // Look again right before removing: a device may have come back since the list was shown.
+  const [settings, list, lan] = await readRouter(client);
+  const inUse = new Set(keep);
+  for (const rule of Array.isArray(settings.rules) ? settings.rules : []) ruleMacs(rule).forEach((m) => inUse.add(m));
+  for (const r of reservationList(lan)) inUse.add(r.mac);
+  const byId = new Map((Array.isArray(list.devices) ? list.devices : []).map((d) => [d.deviceID, d]));
+
+  const removed = [];
+  const failed = [];
+  const targets = [];
+  for (const id of ids) {
+    const d = byId.get(id);
+    if (!d) { removed.push(id); continue; } // already gone
+    const macs = [...(d.knownInterfaces || []).map((i) => normMac(i.macAddress)), ...(d.knownMACAddresses || []).map(normMac)].filter(Boolean);
+    if (d.nodeType || d.isAuthority) failed.push({ id, reason: 'part of the Wi-Fi system' });
+    else if ((d.connections || []).length) failed.push({ id, reason: 'connected' });
+    else if (macs.some((m) => inUse.has(m))) failed.push({ id, reason: 'in use' });
+    else targets.push(id);
+  }
+
+  if (targets.length) {
+    try {
+      await client.transaction(targets.map((id) => ({ action: ACTIONS.DELETE_DEVICE, request: { deviceID: id } })));
+      removed.push(...targets);
+    } catch (first) {
+      if (first.code === 'UNAUTHORIZED' || first.code === 'UNREACHABLE' || first.code === 'TIMEOUT') throw first;
+      // One refusal fails the whole batch: go one by one to find out which.
+      for (const id of targets) {
+        try {
+          await client.call(ACTIONS.DELETE_DEVICE, { deviceID: id });
+          removed.push(id);
+        } catch (e) {
+          if (e.code === 'ErrorUnknownDevice') removed.push(id);
+          else failed.push({ id, reason: e.code || e.message });
+        }
+      }
+    }
+  }
+  return { removed, failed };
+}
+
+const handlers = { '/devices': listDevices, '/rename': renameDevice, '/fixed-ip': setFixedAddresses, '/forget': forgetDevices };
 
 function start() {
   if (!process.send) {
@@ -199,4 +259,4 @@ function start() {
 
 if (require.main === module) start();
 
-module.exports = { listDevices, renameDevice, setFixedAddresses, reservationLabel, usableAddress };
+module.exports = { listDevices, renameDevice, setFixedAddresses, forgetDevices, reservationLabel, usableAddress };

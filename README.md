@@ -62,6 +62,20 @@ has right now permanent, and **Release IP** lets it change again.
 - The router labels each reservation with a host-name style name (letters, digits
   and dashes). The plugin derives it from the name the device reports.
 
+### Cleaning up old devices
+
+A router remembers every device it has ever seen, so the list fills up with old
+phones, guests and devices that changed their private Wi-Fi address. **Clean up old
+devices** lists the ones that are not connected and can be forgotten, and removes
+the ticked ones from the router.
+
+- Never offered for removal: devices that are connected, have a fixed IP, are under
+  Parental Controls, or are in Apple Home. The router itself also refuses to remove
+  a connected device.
+- Devices you gave a name are listed but not ticked, so they stay unless you tick them.
+- The button asks for a second tap before anything is removed. It cannot be undone,
+  but a removed device that connects again simply shows up as a new device.
+
 ### One tile or many
 
 By default every device is its own tile in the Home app. If that is too many tiles,
