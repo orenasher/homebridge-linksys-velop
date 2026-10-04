@@ -106,6 +106,12 @@
       renameFail: 'not saved: {msg}',
       nothing: 'No devices match.',
       more: 'Show {n} more',
+      fixedTitle: 'Fixed IP addresses',
+      fixedListHint: 'Every address the router keeps fixed. One that belongs to a device that has not been connected for a long time is probably no longer needed. Releasing frees the address; the device itself is not removed. Keep the ones other things rely on, such as devices Homebridge reaches by their IP.',
+      fixedNone: 'The router keeps no fixed addresses.',
+      unknownDevice: 'not in the device list',
+      releaseStale: 'Release all {n} that are not connected',
+      releaseConfirm: 'Tap again to release {n} addresses.',
       cleanTitle: 'Clean up old devices',
       cleanCount: '{n} devices are not connected and can be removed from the router\'s list.',
       cleanHint: 'Devices that are connected, have a fixed IP, are under Parental Controls or are in Apple Home are never listed here. A removed device that connects again simply shows up as new, without its custom name.',
@@ -198,6 +204,12 @@
       renameFail: 'לא נשמר: {msg}',
       nothing: 'אין מכשירים מתאימים.',
       more: 'הצג עוד {n}',
+      fixedTitle: 'כתובות IP קבועות',
+      fixedListHint: 'כל הכתובות שהראוטר שומר כקבועות. כתובת של מכשיר שלא מחובר כבר הרבה זמן כנראה כבר לא נחוצה. שחרור מפנה את הכתובת, והמכשיר עצמו לא נמחק. השאר את אלה שדברים אחרים תלויים בהן, למשל מכשירים ש-Homebridge פונה אליהם לפי IP.',
+      fixedNone: 'הראוטר לא שומר כתובות קבועות.',
+      unknownDevice: 'לא ברשימת המכשירים',
+      releaseStale: 'שחרר את כל {n} הלא מחוברים',
+      releaseConfirm: 'לחץ שוב כדי לשחרר {n} כתובות.',
       cleanTitle: 'ניקוי מכשירים ישנים',
       cleanCount: '{n} מכשירים אינם מחוברים וניתן למחוק אותם מרשימת הראוטר.',
       cleanHint: 'מכשירים מחוברים, מכשירים עם IP קבוע, מכשירים בבקרת הורים ומכשירים שנמצאים ב-Apple Home לא מופיעים כאן אף פעם. מכשיר שנמחק ומתחבר שוב פשוט יופיע כחדש, בלי השם שנתת לו.',
@@ -248,7 +260,8 @@
   let error = '';
   let busy = false;
   let current = []; // the "In Apple Home" list as last rendered
-  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false, clean: false };
+  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false, clean: false, fixed: false };
+  const fixedBox = { confirm: false, busy: false, note: '', error: '' };
   // Cleaning up old devices: which ones are ticked (null = the default choice), and where the removal stands.
   const clean = { picked: null, confirm: false, busy: false, message: '', error: '' };
 
@@ -480,6 +493,76 @@
       </div>`;
   }
 
+  /** Bring the fixed-address list, and the label on every device, in line with what the router stored. */
+  function applyReservations(list) {
+    router.reservations = list;
+    if (router.dhcp) router.dhcp.reservations = list.length;
+    const byMac = new Map(list.map((r) => [r.mac, r.ip]));
+    for (const d of router.devices) d.fixedIp = d.macs.map((m) => byMac.get(m)).find(Boolean) || '';
+  }
+
+  /** Every fixed address on the router, the ones without a connected device first. */
+  function fixedRows() {
+    if (!router || !router.dhcp) return [];
+    const rank = { unknown: 0, offline: 1, online: 2 };
+    return (router.reservations || []).map((r) => {
+      const d = routerDevice(r.mac);
+      return { ...r, name: (d && d.name) || r.label || r.mac, state: d ? (d.online ? 'online' : 'offline') : 'unknown' };
+    }).sort((a, b) => (rank[a.state] - rank[b.state]) || a.name.localeCompare(b.name));
+  }
+
+  function renderFixed() {
+    if (!router || !router.dhcp) return '';
+    const rows = fixedRows();
+    const stale = rows.filter((r) => r.state !== 'online');
+    const body = !view.fixed ? '' : `<div class="lv-body">
+        <p class="lv-hint" style="margin-top:.7rem">${esc(t(rows.length ? 'fixedListHint' : 'fixedNone'))}</p>
+        ${!rows.length ? '' : `<div class="lv-scroll" id="lv-fixed-list">
+          ${rows.map((r) => `
+            <div class="lv-edit">
+              <span class="lv-dot ${r.state === 'online' ? 'on' : ''}"></span>
+              <span class="lv-grow">
+                <div class="lv-name">${esc(r.name)}</div>
+                <div class="lv-sub lv-ltr">${esc(`${r.ip} · ${r.mac}`)}</div>
+                ${r.state === 'online' ? '' : `<div class="lv-note">${esc(t(r.state === 'offline' ? 'offline' : 'unknownDevice'))}</div>`}
+              </span>
+              <button type="button" class="btn btn-sm btn-secondary" data-act="fixed-release" data-mac="${esc(r.mac)}" ${fixedBox.busy ? 'disabled' : ''}>${esc(t('release'))}</button>
+            </div>`).join('')}
+        </div>`}
+        ${stale.length ? `<button type="button" class="btn btn-danger" data-act="fixed-stale" ${fixedBox.busy ? 'disabled' : ''}>${esc(t(fixedBox.confirm ? 'releaseConfirm' : 'releaseStale', { n: stale.length }))}</button>` : ''}
+        ${fixedBox.note ? `<div class="lv-note lv-ok" style="margin-top:.5rem">${esc(fixedBox.note)}</div>` : ''}
+        ${fixedBox.error ? `<div class="lv-err">${esc(fixedBox.error)}</div>` : ''}
+      </div>`;
+    return `
+      <div class="lv-box ${view.fixed ? 'lv-open' : ''}" id="lv-fixed" style="margin-top:1.4rem">
+        <button type="button" class="lv-head" data-act="fixed-open">
+          <span class="lv-grow lv-name">${esc(t('fixedTitle'))}</span>
+          <span class="lv-tag">${rows.length}</span>
+          ${chevron}
+        </button>${body}
+      </div>`;
+  }
+
+  /** Release fixed addresses by MAC. One request, so the router rewrites its table once. */
+  async function releaseFixed(macs) {
+    if (!macs.length || fixedBox.busy) return;
+    Object.assign(fixedBox, { busy: true, confirm: false, note: t('saving'), error: '' });
+    render();
+    try {
+      const result = await hb.request('/fixed-ip', {
+        host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password,
+        changes: macs.map((mac) => ({ mac, reserve: false })),
+      });
+      applyReservations(result.reservations);
+      fixedBox.note = `${t('saved')} ✓${(result.sideEffects || []).length ? ` ${t('applying')}` : ''}`;
+    } catch (e) {
+      fixedBox.note = '';
+      fixedBox.error = (e && (e.message || (e.error && e.error.message))) || String(e);
+    }
+    fixedBox.busy = false;
+    render();
+  }
+
   /** Old devices the router can forget: not connected, and not used for anything. */
   function staleDevices(taken) {
     if (!router) return [];
@@ -627,6 +710,7 @@
       <div id="lv-chosen">${current.map(renderChosen).join('')}</div>
 
       ${renderNetwork(taken)}
+      ${renderFixed()}
       ${renderClean(taken)}
       ${renderOptions()}
       <p class="lv-hint" style="margin-top:1rem">${esc(t('saveNote'))}</p>`;
@@ -708,8 +792,7 @@
     let disturbed = false;
     try {
       const result = await hb.request('/fixed-ip', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password, changes });
-      const byMac = new Map(result.reservations.map((r) => [r.mac, r.ip]));
-      for (const d of router.devices) d.fixedIp = d.macs.map((m) => byMac.get(m)).find(Boolean) || '';
+      applyReservations(result.reservations);
       disturbed = (result.sideEffects || []).length > 0;
     } catch (e) {
       failure = (e && (e.message || (e.error && e.error.message))) || String(e);
@@ -746,6 +829,13 @@
     const k = Number(el.dataset.k);
     if (act === 'connect') { connect(); return; }
     if (act === 'fix') { toggleFixed(el.dataset.mac); return; }
+    if (act === 'fixed-open') { view.fixed = !view.fixed; Object.assign(fixedBox, { confirm: false, note: '', error: '' }); render(); return; }
+    if (act === 'fixed-release') { releaseFixed([el.dataset.mac]); return; }
+    if (act === 'fixed-stale') {
+      if (!fixedBox.confirm) { Object.assign(fixedBox, { confirm: true, note: '', error: '' }); render(); return; } // first tap only asks
+      releaseFixed(fixedRows().filter((r) => r.state !== 'online').map((r) => r.mac));
+      return;
+    }
     if (act === 'clean-open') { view.clean = !view.clean; clean.confirm = false; render(); return; }
     if (act === 'clean-all' || act === 'clean-none') {
       const all = staleDevices(new Set(current.flatMap((x) => x.macs)));

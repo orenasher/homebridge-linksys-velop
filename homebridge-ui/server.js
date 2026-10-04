@@ -102,6 +102,7 @@ async function listDevices(body) {
     parentalEnabled: settings.isParentalControlEnabled !== false,
     // null when this router does not report its LAN settings: fixed addresses are then left alone
     dhcp: lan ? { enabled: lan.isDHCPEnabled !== false, reservations: reservationList(lan).length } : null,
+    reservations: reservationList(lan), // every fixed address, including ones whose device is long gone
   };
 }
 

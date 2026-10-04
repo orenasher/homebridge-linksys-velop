@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- Overview of every fixed IP address on the router, with the ones whose device is not connected (or no longer known) listed first, so old ones can be found and released.
+
 ## 1.5.0
 
 - Clean up old devices: remove devices that are no longer connected from the router's list, with a preview of what will be removed.

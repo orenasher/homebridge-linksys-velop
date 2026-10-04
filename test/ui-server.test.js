@@ -134,6 +134,7 @@ test('settings screen server reports which devices have a fixed IP', async (t) =
   assert.equal(data.devices.find((d) => d.macs.includes(MAC.consoleC)).fixedIp, '10.0.0.60');
   assert.equal(data.devices.find((d) => d.macs.includes(MAC.phone)).fixedIp, '');
   assert.deepEqual(data.dhcp, { enabled: true, reservations: 1 });
+  assert.deepEqual(data.reservations, [{ mac: MAC.consoleC, ip: '10.0.0.60', label: 'PS5-CC0001' }]);
 });
 
 test('settings screen server makes an IP fixed and releases it, leaving the other LAN settings alone', async (t) => {
