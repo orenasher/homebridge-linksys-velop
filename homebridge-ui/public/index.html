@@ -146,6 +146,8 @@
       appFlags: 'Keep the "Paused" label in the Linksys app in step',
       days: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
       saveNote: 'Tap Save below and restart Homebridge for changes to take effect.',
+      language: 'Language',
+      testedOn: 'Tested on the Linksys Velop MX4200 only.',
     },
     he: {
       router: 'ראוטר',
@@ -244,6 +246,8 @@
       appFlags: 'שמור על התווית "Paused" באפליקציית Linksys מסונכרנת',
       days: ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'],
       saveNote: 'לחץ על שמור למטה והפעל מחדש את Homebridge כדי שהשינויים ייכנסו לתוקף.',
+      language: 'שפה',
+      testedOn: 'נבדק על Linksys Velop MX4200 בלבד.',
     },
   };
 
@@ -685,6 +689,14 @@
         : t('needLogin', { button });
     root.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
     root.innerHTML = `
+      <div class="lv-row" style="margin-bottom:.6rem">
+        <span class="lv-grow lv-hint" style="margin:0">${esc(t('testedOn'))}</span>
+        <label class="lv-hint" style="margin:0" for="lv-lang">${esc(t('language'))}</label>
+        <select class="form-select" id="lv-lang" style="width:auto" data-ch="language">
+          <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
+          <option value="he" ${lang === 'he' ? 'selected' : ''}>עברית</option>
+        </select>
+      </div>
       <div class="lv-box">
         <label class="lv-label" style="margin-top:0" for="lv-host">${esc(t('host'))}</label>
         <input class="form-control lv-ltr" id="lv-host" type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1" value="${esc(cfg.host)}" data-in="host">
@@ -911,6 +923,12 @@
     if (!el) return;
     const kind = el.dataset.ch;
     if (kind === 'layout') { if (el.value === 'single') cfg.grouping = 'single'; else delete cfg.grouping; push(); render(); return; }
+    if (kind === 'language') {
+      lang = el.value === 'he' ? 'he' : 'en';
+      if (lang === 'he') cfg.language = 'he'; else delete cfg.language;
+      push(); render();
+      return;
+    }
     if (kind === 'rename') { rename(el); return; }
     if (kind === 'clean-pick') {
       const all = staleDevices(new Set(current.flatMap((x) => x.macs)));
@@ -953,14 +971,11 @@
 
   (async () => {
     try {
-      const code = typeof hb.i18nCurrentLang === 'function' ? await hb.i18nCurrentLang() : navigator.language;
-      if (String(code || '').toLowerCase().startsWith('he')) lang = 'he';
-    } catch (e) { /* keep English */ }
-    try {
       const blocks = await hb.getPluginConfig();
       if (Array.isArray(blocks) && blocks.length) cfg = blocks[0];
       else { push(); }
     } catch (e) { /* start with an empty configuration */ }
+    lang = cfg.language === 'he' ? 'he' : 'en'; // English unless Hebrew was chosen on this screen
     render();
     if (cfg.host && cfg.password) connect();
   })();

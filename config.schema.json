@@ -3,7 +3,7 @@
   "pluginType": "platform",
   "singular": true,
   "customUi": true,
-  "headerDisplay": "Linksys Velop parental controls for Apple Home. Built for and tested on the **Velop MX4200**. Every device that already appears under Parental Controls in the Linksys app is added automatically.",
+  "headerDisplay": "Linksys Velop parental controls for Apple Home. Tested on the **Linksys Velop MX4200** only.",
   "footerDisplay": "The plugin talks to the router on your local network only. Your schedules are saved in the Homebridge storage folder and are part of a Homebridge backup.",
   "schema": {
     "type": "object",
@@ -29,6 +29,25 @@
         "x-schema-form": {
           "type": "password"
         }
+      },
+      "language": {
+        "title": "Language of the settings screen",
+        "type": "string",
+        "default": "en",
+        "oneOf": [
+          {
+            "title": "English",
+            "enum": [
+              "en"
+            ]
+          },
+          {
+            "title": "עברית (Hebrew)",
+            "enum": [
+              "he"
+            ]
+          }
+        ]
       },
       "autoDiscover": {
         "title": "Add every device that is under Parental Controls on the router",

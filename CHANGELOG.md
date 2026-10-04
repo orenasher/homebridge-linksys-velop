@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0
+
+- The settings screen is now in English by default, with a Language menu to switch to Hebrew. It no longer follows the language of the Homebridge UI.
+- The description states plainly that the plugin has been tested on the Linksys Velop MX4200 only.
+
 ## 1.6.0
 
 - Overview of every fixed IP address on the router, with the ones whose device is not connected (or no longer known) listed first, so old ones can be found and released.
@@ -34,4 +39,4 @@
 - Pause switch, Schedule switch and Connected sensor for every device under Linksys Parental Controls.
 - Optional Restart Router switch.
 - Devices can be grouped (cable + Wi-Fi address of one device), renamed, hidden or given a fixed schedule.
-- Built for and tested on the Linksys Velop MX4200.
+- Tested on the Linksys Velop MX4200 only.

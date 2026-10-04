@@ -5,9 +5,9 @@ Linksys Velop parental controls in Apple Home.
 Pause a child's device from the Home app, from Siri or from an automation,
 switch its bedtime schedule on or off, and see whether the device is connected.
 
-**Built for and tested on the Linksys Velop MX4200.** It talks to the router with
-the same local protocol the Linksys app uses (JNAP), so other Velop and Linksys
-Smart Wi-Fi models are likely to work as well, but only the MX4200 has been tested.
+**Tested on the Linksys Velop MX4200 only.** The plugin talks to the router with the
+same local protocol the Linksys app uses (JNAP). Other Velop and Linksys Smart Wi-Fi
+models use that protocol too and may work, but none of them has been tested.
 
 - No cloud account. The plugin only talks to the router on your own network.
 - No dependencies, and nothing to set up outside Homebridge.
@@ -141,8 +141,8 @@ Then open the plugin settings and fill in:
 - **Router admin password**: the password used to manage the router. This is not the Wi-Fi password and not your Linksys cloud account password.
 
 Tap **Find devices**, tick the devices you want, save, and restart Homebridge.
-The settings screen is available in English and Hebrew and follows the language of
-the Homebridge UI.
+The settings screen is in English. Hebrew can be chosen from the **Language** menu
+at the top of the screen.
 
 ## Settings
 
@@ -159,6 +159,7 @@ Everything else is optional:
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
+| `language` | `"en"` | Language of the settings screen: `"en"` or `"he"` (Hebrew). |
 | `autoDiscover` | `true` | Add every device that has a parental-control rule on the router. |
 | `grouping` | `"device"` | `"device"`: one tile per device. `"single"`: one tile for everything. |
 | `groupName` | plugin name | Name of the single tile. |
