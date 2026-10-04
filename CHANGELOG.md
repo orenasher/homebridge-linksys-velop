@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Rename the devices on the router from the settings screen: type a name next to each device and it is saved on the router right away.
+
 ## 1.2.0
 
 - New layout option: one tile for everything. All switches and sensors sit inside a single tile in the Home app instead of one tile per device.

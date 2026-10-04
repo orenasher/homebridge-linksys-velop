@@ -27,6 +27,10 @@
   .lv .lv-pick { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); cursor: pointer; margin: 0; }
   .lv .lv-pick:last-child { border-bottom: 0; }
   .lv .lv-pick input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin: 0; }
+  .lv .lv-edit { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
+  .lv .lv-edit:last-child { border-bottom: 0; }
+  .lv .lv-note { font-size: 0.8rem; }
+  .lv .lv-ok { color: #2fb344; }
   .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
   .lv .lv-status { font-size: 0.85rem; margin-top: 0.6rem; }
   .lv .lv-ltr { direction: ltr; unicode-bidi: isolate; }
@@ -84,6 +88,12 @@
       networkHint: 'Tick a device to add it to Apple Home.',
       search: 'Search by name or address',
       onlyOnline: 'Connected now only',
+      renameMode: 'Rename devices on the router',
+      renameTitle: 'Rename devices',
+      renameHint: 'Type a name and move on to the next field. It is saved on the router right away and shows in the Linksys app. Leave a field empty to go back to the name the device reports. Names in Apple Home are set separately, in the device card above.',
+      saving: 'saving...',
+      saved: 'saved',
+      renameFail: 'not saved: {msg}',
       nothing: 'No devices match.',
       more: 'Show {n} more',
       options: 'More options',
@@ -152,6 +162,12 @@
       networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home.',
       search: 'חיפוש לפי שם או כתובת',
       onlyOnline: 'רק מחוברים כרגע',
+      renameMode: 'שינוי שמות המכשירים בראוטר',
+      renameTitle: 'שינוי שמות',
+      renameHint: 'מקלידים שם ועוברים לשדה הבא. השם נשמר מיד בראוטר ומופיע באפליקציית Linksys. שדה ריק מחזיר את השם שהמכשיר מדווח בעצמו. שמות ב-Apple Home נקבעים בנפרד, בכרטיס המכשיר למעלה.',
+      saving: 'שומר...',
+      saved: 'נשמר',
+      renameFail: 'לא נשמר: {msg}',
       nothing: 'אין מכשירים מתאימים.',
       more: 'הצג עוד {n}',
       options: 'אפשרויות נוספות',
@@ -192,7 +208,7 @@
   let error = '';
   let busy = false;
   let current = []; // the "In Apple Home" list as last rendered
-  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false };
+  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false };
 
   const t = (key, vars) => {
     let text = (TEXT[lang] && TEXT[lang][key]) || TEXT.en[key] || key;
@@ -354,29 +370,46 @@
     if (!router) return '';
     const query = view.search.trim().toLowerCase();
     const list = router.devices
-      .filter((d) => !d.macs.some((m) => taken.has(m)))
+      .filter((d) => view.rename || !d.macs.some((m) => taken.has(m))) // renaming covers every device, picked or not
       .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
       .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~'));
     const shown = list.slice(0, view.limit);
-    return `
-      <h5>${esc(t('network'))}</h5>
-      <p class="lv-hint">${esc(t('networkHint'))}</p>
-      <input class="form-control" type="search" placeholder="${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
-      <div class="form-check form-switch" style="margin:.6rem 0">
-        <input class="form-check-input" type="checkbox" id="lv-online" ${view.onlyOnline ? 'checked' : ''} data-ch="only-online">
-        <label class="form-check-label" for="lv-online">${esc(t('onlyOnline'))}</label>
-      </div>
-      <div id="lv-net-wrap">
-      <div class="lv-box" id="lv-net" style="padding:.2rem .7rem">
-        ${shown.length ? shown.map((d) => `
+    const details = (d) => esc([d.ip, d.macs.join(', ')].filter(Boolean).join(' · '));
+    const pickRow = (d) => `
           <label class="lv-pick">
             <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}">
             <span class="lv-dot ${d.online ? 'on' : ''}"></span>
             <span class="lv-grow">
               <div class="lv-name">${esc(d.name || d.macs[0])}</div>
-              <div class="lv-sub lv-ltr">${esc([d.ip, d.macs.join(', ')].filter(Boolean).join(' · '))}</div>
+              <div class="lv-sub lv-ltr">${details(d)}</div>
             </span>
-          </label>`).join('') : `<p class="lv-hint" style="margin:.6rem 0">${esc(t('nothing'))}</p>`}
+          </label>`;
+    const editRow = (d) => `
+          <div class="lv-edit">
+            <span class="lv-dot ${d.online ? 'on' : ''}"></span>
+            <span class="lv-grow">
+              <input class="form-control" type="text" maxlength="64" enterkeyhint="next" autocomplete="off" autocapitalize="sentences"
+                placeholder="${esc(d.hostname || d.macs[0])}" value="${esc(d.name === d.hostname ? '' : d.name)}" aria-label="${esc(d.hostname || d.macs[0])}"
+                ${d.id ? '' : 'disabled'} data-ch="rename" data-mac="${esc(d.macs[0])}">
+              <div class="lv-sub lv-ltr" style="margin-top:.25rem">${details(d)}</div>
+              <div class="lv-note" data-status="${esc(d.macs[0])}"></div>
+            </span>
+          </div>`;
+    return `
+      <h5>${esc(t(view.rename ? 'renameTitle' : 'network'))}</h5>
+      <p class="lv-hint">${esc(t(view.rename ? 'renameHint' : 'networkHint'))}</p>
+      <input class="form-control" type="search" placeholder="${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
+      <div class="form-check form-switch" style="margin:.6rem 0 .3rem">
+        <input class="form-check-input" type="checkbox" id="lv-online" ${view.onlyOnline ? 'checked' : ''} data-ch="only-online">
+        <label class="form-check-label" for="lv-online">${esc(t('onlyOnline'))}</label>
+      </div>
+      <div class="form-check form-switch" style="margin:.3rem 0 .6rem">
+        <input class="form-check-input" type="checkbox" id="lv-rename" ${view.rename ? 'checked' : ''} data-ch="rename-mode">
+        <label class="form-check-label" for="lv-rename">${esc(t('renameMode'))}</label>
+      </div>
+      <div id="lv-net-wrap">
+      <div class="lv-box" id="lv-net" style="padding:.2rem .7rem">
+        ${shown.length ? shown.map(view.rename ? editRow : pickRow).join('') : `<p class="lv-hint" style="margin:.6rem 0">${esc(t('nothing'))}</p>`}
       </div>
       ${list.length > shown.length ? `<button type="button" class="btn btn-sm btn-secondary" data-act="more">${esc(t('more', { n: Math.min(PAGE, list.length - shown.length) }))}</button>` : ''}
       </div>`;
@@ -471,6 +504,24 @@
     }
   }
 
+  /** Save a new name on the router. The row is updated in place so the keyboard and the scroll position stay put. */
+  async function rename(input) {
+    const d = routerDevice(input.dataset.mac);
+    const status = root.querySelector(`[data-status="${input.dataset.mac}"]`);
+    if (!d || !d.id) return;
+    const name = input.value.replace(/\s+/g, ' ').trim();
+    if (name === (d.name === d.hostname ? '' : d.name)) return; // nothing changed
+    const show = (text, cls) => { if (status) { status.textContent = text; status.className = `lv-note ${cls}`; } };
+    show(t('saving'), '');
+    try {
+      await hb.request('/rename', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password, id: d.id, name });
+      d.name = name || d.hostname;
+      show(`${t('saved')} ✓`, 'lv-ok');
+    } catch (e) {
+      show(t('renameFail', { msg: (e && (e.message || (e.error && e.error.message))) || String(e) }), 'lv-err');
+    }
+  }
+
   function removeItem(item) {
     cfg.devices = (cfg.devices || []).filter((d) => d !== item.device);
     // A device that has a rule on the router would be added again automatically, so hide it.
@@ -556,6 +607,8 @@
     if (!el) return;
     const kind = el.dataset.ch;
     if (kind === 'layout') { if (el.value === 'single') cfg.grouping = 'single'; else delete cfg.grouping; push(); render(); return; }
+    if (kind === 'rename') { rename(el); return; }
+    if (kind === 'rename-mode') { view.rename = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'pick') { pick(el.dataset.mac); push(); render(); return; }
     if (kind === 'opt-bool') { cfg[el.dataset.key] = el.checked; push(); render(); return; }
@@ -569,6 +622,15 @@
       device.schedules[Number(el.dataset.k)][kind === 'sched-start' ? 'start' : 'end'] = el.value;
     }
     push(); render();
+  });
+
+  // Enter in a name field saves it and jumps to the next one.
+  root.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || !event.target.matches('[data-ch="rename"]')) return;
+    event.preventDefault();
+    const fields = [...root.querySelectorAll('[data-ch="rename"]:not([disabled])')];
+    const next = fields[fields.indexOf(event.target) + 1];
+    if (next) next.focus(); else event.target.blur();
   });
 
   // -------------------------------------------------------------------- start

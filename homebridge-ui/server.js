@@ -38,7 +38,8 @@ async function listDevices(body) {
     const user = (d.properties || []).find((p) => p.name === 'userDeviceName' && p.value);
     const connection = (d.connections || [])[0];
     devices.push({
-      name: String((user && user.value) || d.friendlyName || '').replace(/�/g, '').replace(/\s+/g, ' ').trim(),
+      id: d.deviceID || '',
+      name: String((user && user.value) || d.friendlyName || '').replace(/\uFFFD/g, '').replace(/\s+/g, ' ').trim(),
       hostname: d.friendlyName || '',
       macs: [...macs],
       online: (d.connections || []).length > 0,
@@ -62,7 +63,25 @@ async function listDevices(body) {
   };
 }
 
-const handlers = { '/devices': listDevices };
+const MAX_NAME = 64;
+
+/** Rename a device on the router: the same change the Linksys app makes when you edit a device name. */
+async function renameDevice(body) {
+  const host = String((body && body.host) || '').trim();
+  const password = String((body && body.password) || '');
+  const id = String((body && body.id) || '').trim();
+  if (!host || !password) throw new Error('Enter the router address and the admin password first.');
+  if (!id) throw new Error('This device cannot be renamed.');
+  const name = String((body && body.name) || '').replace(/\s+/g, ' ').trim();
+  if (name.length > MAX_NAME) throw new Error(`The name is too long (at most ${MAX_NAME} characters).`);
+  const client = new JnapClient({ host, port: body.port, username: body.username, password, timeout: 15000 });
+  // An empty name removes the custom name, so the device shows the name it reports itself.
+  const change = name ? { propertiesToModify: [{ name: 'userDeviceName', value: name }] } : { propertiesToRemove: ['userDeviceName'] };
+  await client.call(ACTIONS.SET_DEVICE_PROPERTIES, { deviceID: id, ...change });
+  return { id, name };
+}
+
+const handlers = { '/devices': listDevices, '/rename': renameDevice };
 
 function start() {
   if (!process.send) {
@@ -86,4 +105,4 @@ function start() {
 
 if (require.main === module) start();
 
-module.exports = { listDevices };
+module.exports = { listDevices, renameDevice };

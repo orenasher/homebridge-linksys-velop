@@ -34,6 +34,18 @@ Home, then tap it to choose which tiles it gets (Pause, Schedule, Connected) and
 set its schedules. Devices that are already under **Parental Controls** in the
 Linksys app are added automatically.
 
+### Renaming devices on the router
+
+The same screen can rename the devices on the router itself, which is much quicker
+than doing it one device at a time in the Linksys app. Switch on **Rename devices on
+the router**, type a name, and move on to the next field. Each name is saved on the
+router straight away and shows in the Linksys app. Every row shows the device's IP
+and MAC address and whether it is connected, to help tell devices apart. Leaving a
+field empty goes back to the name the device reports itself.
+
+These are the router's names. The names of the tiles in Apple Home are set
+separately, in each device's card.
+
 ### One tile or many
 
 By default every device is its own tile in the Home app. If that is too many tiles,
