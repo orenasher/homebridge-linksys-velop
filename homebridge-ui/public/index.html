@@ -94,6 +94,9 @@
       showing: 'Showing {shown} of {total}.',
       groupOffline: 'Not connected ({n})',
       groupOnline: 'Connected ({n})',
+      showConnected: 'Show the {n} connected ones too',
+      hideConnected: 'Hide the connected ones',
+      noStale: 'Every fixed address belongs to a device that is connected right now.',
       search: 'Search by name or address',
       onlyOnline: 'Connected now only',
       renameMode: 'Rename devices and set fixed IPs on the router',
@@ -197,6 +200,9 @@
       showing: 'מוצגים {shown} מתוך {total}.',
       groupOffline: 'לא מחוברים ({n})',
       groupOnline: 'מחוברים ({n})',
+      showConnected: 'הצג גם את {n} המחוברים',
+      hideConnected: 'הסתר את המחוברים',
+      noStale: 'כל הכתובות הקבועות שייכות למכשירים שמחוברים כרגע.',
       search: 'חיפוש לפי שם או כתובת',
       onlyOnline: 'רק מחוברים כרגע',
       renameMode: 'שינוי שמות וקיבוע כתובות IP בראוטר',
@@ -272,7 +278,8 @@
   let busy = false;
   let current = []; // the "In Apple Home" list as last rendered
   const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false, clean: false, fixed: false };
-  const fixedBox = { confirm: false, busy: false, note: '', error: '' };
+  // The fixed-address box is for finding old addresses, so it starts with only the unconnected ones.
+  const fixedBox = { confirm: false, busy: false, note: '', error: '', all: false };
   // Cleaning up old devices: which ones are ticked (null = the default choice), and where the removal stands.
   const clean = { picked: null, confirm: false, busy: false, message: '', error: '' };
 
@@ -537,12 +544,16 @@
               <button type="button" class="btn btn-sm btn-secondary" data-act="fixed-release" data-mac="${esc(r.mac)}" ${fixedBox.busy ? 'disabled' : ''}>${esc(t('release'))}</button>
             </div>`;
     const stale = rows.filter((r) => r.state !== 'online');
+    const connected = rows.filter((r) => r.state === 'online');
     const body = !view.fixed ? '' : `<div class="lv-body">
         <p class="lv-hint" style="margin-top:.7rem">${esc(t(rows.length ? 'fixedListHint' : 'fixedNone'))}</p>
-        ${!rows.length ? '' : `<div class="lv-scroll" id="lv-fixed-list">
-          ${stale.length ? `<div class="lv-group">${esc(t('groupOffline', { n: stale.length }))}</div>${stale.map(fixedRow).join('')}` : ''}
-          ${rows.length > stale.length ? `<div class="lv-group">${esc(t('groupOnline', { n: rows.length - stale.length }))}</div>${rows.filter((r) => r.state === 'online').map(fixedRow).join('')}` : ''}
-        </div>`}
+        ${!rows.length ? '' : `
+          ${stale.length ? '' : `<p class="lv-hint" id="lv-fixed-none">${esc(t('noStale'))}</p>`}
+          ${!stale.length && !fixedBox.all ? '' : `<div class="lv-scroll" id="lv-fixed-list">
+            ${stale.length ? `<div class="lv-group">${esc(t('groupOffline', { n: stale.length }))}</div>${stale.map(fixedRow).join('')}` : ''}
+            ${fixedBox.all && connected.length ? `<div class="lv-group">${esc(t('groupOnline', { n: connected.length }))}</div>${connected.map(fixedRow).join('')}` : ''}
+          </div>`}
+          ${connected.length ? `<div style="margin-bottom:.6rem"><button type="button" class="btn btn-sm btn-secondary" data-act="fixed-all">${esc(fixedBox.all ? t('hideConnected') : t('showConnected', { n: connected.length }))}</button></div>` : ''}`}
         ${stale.length ? `<button type="button" class="btn btn-danger" data-act="fixed-stale" ${fixedBox.busy ? 'disabled' : ''}>${esc(t(fixedBox.confirm ? 'releaseConfirm' : 'releaseStale', { n: stale.length }))}</button>` : ''}
         ${fixedBox.note ? `<div class="lv-note lv-ok" style="margin-top:.5rem">${esc(fixedBox.note)}</div>` : ''}
         ${fixedBox.error ? `<div class="lv-err">${esc(fixedBox.error)}</div>` : ''}
@@ -852,6 +863,7 @@
     if (act === 'connect') { connect(); return; }
     if (act === 'fix') { toggleFixed(el.dataset.mac); return; }
     if (act === 'fixed-open') { view.fixed = !view.fixed; Object.assign(fixedBox, { confirm: false, note: '', error: '' }); render(); return; }
+    if (act === 'fixed-all') { fixedBox.all = !fixedBox.all; render(); return; }
     if (act === 'fixed-release') { releaseFixed([el.dataset.mac]); return; }
     if (act === 'fixed-stale') {
       if (!fixedBox.confirm) { Object.assign(fixedBox, { confirm: true, note: '', error: '' }); render(); return; } // first tap only asks

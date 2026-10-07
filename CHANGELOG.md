@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2
+
+- The fixed IP list starts with only the addresses whose device is not connected. The connected ones are one tap away.
+
 ## 1.7.1
 
 - The fixed IP list is split into "Not connected" and "Connected", so it is clear which addresses the release-all button affects.

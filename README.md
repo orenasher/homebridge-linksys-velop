@@ -63,8 +63,8 @@ has right now permanent, and **Release IP** lets it change again.
   and dashes). The plugin derives it from the name the device reports.
 
 **Fixed IP addresses** further down the screen lists every address the router keeps
-fixed in one place, with the ones whose device is not connected, or no longer known
-to the router at all, at the top. Release them one by one, or release all the
+fixed. It starts with the ones whose device is not connected, or no longer known to
+the router at all; the connected ones are one tap away. Release them one by one, or release all the
 unconnected ones together. Releasing only frees the address; the device is not
 removed. A router cannot tell how long a device has been away, so check the list
 before releasing: something that is merely switched off looks the same as something
