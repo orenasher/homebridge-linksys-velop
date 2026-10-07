@@ -90,7 +90,8 @@
       macsHint: 'A console has one address for cable and another for Wi-Fi. Put both here, separated by a comma, to control them together.',
       remove: 'Remove from Apple Home',
       network: 'Devices on your network',
-      networkHint: 'Tick a device to add it to Apple Home. Devices that are already in Apple Home are in the list above, not here.',
+      networkHint: 'Every device the router knows. A tick means the device is in Apple Home: tick to add it, untick to remove it.',
+      inHomeTag: 'in Apple Home',
       showing: 'Showing {shown} of {total}.',
       groupOffline: 'Not connected ({n})',
       groupOnline: 'Connected ({n})',
@@ -196,7 +197,8 @@
       macsHint: 'לקונסולה יש כתובת אחת לכבל ואחרת ל-Wi-Fi. כתוב כאן את שתיהן, מופרדות בפסיק, כדי לשלוט בהן יחד.',
       remove: 'הסר מ-Apple Home',
       network: 'מכשירים ברשת שלך',
-      networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home. מכשירים שכבר נמצאים ב-Apple Home מופיעים ברשימה למעלה ולא כאן.',
+      networkHint: 'כל המכשירים שהראוטר מכיר. סימון V אומר שהמכשיר נמצא ב-Apple Home: מסמנים כדי להוסיף, ומבטלים סימון כדי להסיר.',
+      inHomeTag: 'ב-Apple Home',
       showing: 'מוצגים {shown} מתוך {total}.',
       groupOffline: 'לא מחוברים ({n})',
       groupOnline: 'מחוברים ({n})',
@@ -467,19 +469,23 @@
     if (!router) return '';
     const query = view.search.trim().toLowerCase();
     const list = router.devices
-      .filter((d) => view.rename || !d.macs.some((m) => taken.has(m))) // renaming covers every device, picked or not
       .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
       .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~', lang));
     const shown = list.slice(0, view.limit);
-    const pickRow = (d) => `
+    // Every device is listed. A tick means it is in Apple Home: ticking adds it, unticking removes it.
+    const pickRow = (d) => {
+      const inHome = d.macs.some((m) => taken.has(m));
+      return `
           <label class="lv-pick">
-            <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}">
+            <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}" ${inHome ? 'checked' : ''}>
             <span class="lv-dot ${d.online ? 'on' : ''}"></span>
             <span class="lv-grow">
               <div class="lv-name">${esc(d.name || d.macs[0])}</div>
               <div class="lv-sub lv-ltr">${addressLine(d)}</div>
             </span>
+            ${inHome ? `<span class="lv-tag">${esc(t('inHomeTag'))}</span>` : ''}
           </label>`;
+    };
     const editRow = (d) => `
           <div class="lv-edit">
             <span class="lv-dot ${d.online ? 'on' : ''}"></span>
@@ -966,7 +972,14 @@
     }
     if (kind === 'rename-mode') { view.rename = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
-    if (kind === 'pick') { pick(el.dataset.mac); push(); render(); return; }
+    if (kind === 'pick') {
+      const d = routerDevice(el.dataset.mac);
+      const item = d && current.find((x) => x.macs.some((m) => d.macs.includes(m)));
+      if (el.checked && !item) pick(el.dataset.mac);
+      else if (!el.checked && item) removeItem(item);
+      push(); render();
+      return;
+    }
     if (kind === 'opt-bool') { cfg[el.dataset.key] = el.checked; push(); render(); return; }
     if (kind === 'opt') { cfg[el.dataset.key] = el.value; push(); return; }
     const item = current[Number(el.dataset.i)];

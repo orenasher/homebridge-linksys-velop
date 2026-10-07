@@ -29,9 +29,10 @@ Optionally, a **Restart Router** switch.
 ## Choosing devices
 
 The settings screen in the Homebridge UI reads the list of devices from the router
-and shows the ones that are connected right now. Tick a device to add it to Apple
-Home, then tap it to choose which tiles it gets (Pause, Schedule, Connected) and to
-set its schedules. Devices that are already under **Parental Controls** in the
+and shows the ones that are connected right now. A tick means the device is in
+Apple Home: tick a device to add it, untick it to remove it. Tap a device in the
+**In Apple Home** list to choose which tiles it gets (Pause, Schedule, Connected)
+and to set its schedules. Devices that are already under **Parental Controls** in the
 Linksys app are added automatically.
 
 ### Renaming devices on the router
