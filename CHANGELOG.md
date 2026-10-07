@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1
+
+- The fixed IP list is split into "Not connected" and "Connected", so it is clear which addresses the release-all button affects.
+- The device list says how many devices it is showing out of how many, and that devices already in Apple Home are listed separately.
+
 ## 1.7.0
 
 - The settings screen is now in English by default, with a Language menu to switch to Hebrew. It no longer follows the language of the Homebridge UI.

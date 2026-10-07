@@ -33,6 +33,7 @@
   .lv .lv-ip { display: inline-block; line-height: 1.5; font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0 0.45rem; margin: 0 0.15rem; white-space: nowrap; }
   .lv .lv-ip.fixed { border-color: #2fb344; color: #2fb344; opacity: 1; }
   .lv .lv-fix { margin-top: 0.35rem; }
+  .lv .lv-group { font-size: 0.8rem; font-weight: 600; opacity: 0.8; padding: 0.6rem 0.2rem 0.2rem; }
   .lv .lv-scroll { max-height: 22rem; overflow-y: auto; border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 0.5rem; padding: 0 0.6rem; margin: 0.6rem 0; }
   .lv .lv-ok { color: #2fb344; }
   .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
@@ -89,7 +90,10 @@
       macsHint: 'A console has one address for cable and another for Wi-Fi. Put both here, separated by a comma, to control them together.',
       remove: 'Remove from Apple Home',
       network: 'Devices on your network',
-      networkHint: 'Tick a device to add it to Apple Home.',
+      networkHint: 'Tick a device to add it to Apple Home. Devices that are already in Apple Home are in the list above, not here.',
+      showing: 'Showing {shown} of {total}.',
+      groupOffline: 'Not connected ({n})',
+      groupOnline: 'Connected ({n})',
       search: 'Search by name or address',
       onlyOnline: 'Connected now only',
       renameMode: 'Rename devices and set fixed IPs on the router',
@@ -189,7 +193,10 @@
       macsHint: 'לקונסולה יש כתובת אחת לכבל ואחרת ל-Wi-Fi. כתוב כאן את שתיהן, מופרדות בפסיק, כדי לשלוט בהן יחד.',
       remove: 'הסר מ-Apple Home',
       network: 'מכשירים ברשת שלך',
-      networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home.',
+      networkHint: 'סמן מכשיר כדי להוסיף אותו ל-Apple Home. מכשירים שכבר נמצאים ב-Apple Home מופיעים ברשימה למעלה ולא כאן.',
+      showing: 'מוצגים {shown} מתוך {total}.',
+      groupOffline: 'לא מחוברים ({n})',
+      groupOnline: 'מחוברים ({n})',
       search: 'חיפוש לפי שם או כתובת',
       onlyOnline: 'רק מחוברים כרגע',
       renameMode: 'שינוי שמות וקיבוע כתובות IP בראוטר',
@@ -455,7 +462,7 @@
     const list = router.devices
       .filter((d) => view.rename || !d.macs.some((m) => taken.has(m))) // renaming covers every device, picked or not
       .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
-      .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~'));
+      .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~', lang));
     const shown = list.slice(0, view.limit);
     const pickRow = (d) => `
           <label class="lv-pick">
@@ -490,6 +497,7 @@
         <label class="form-check-label" for="lv-rename">${esc(t('renameMode'))}</label>
       </div>
       <div id="lv-net-wrap">
+      ${list.length > shown.length ? `<p class="lv-hint" id="lv-showing" style="margin:.2rem 0 .4rem">${esc(t('showing', { shown: shown.length, total: list.length }))}</p>` : ''}
       <div class="lv-box" id="lv-net" style="padding:.2rem .7rem">
         ${shown.length ? shown.map(view.rename ? editRow : pickRow).join('') : `<p class="lv-hint" style="margin:.6rem 0">${esc(t('nothing'))}</p>`}
       </div>
@@ -512,26 +520,28 @@
     return (router.reservations || []).map((r) => {
       const d = routerDevice(r.mac);
       return { ...r, name: (d && d.name) || r.label || r.mac, state: d ? (d.online ? 'online' : 'offline') : 'unknown' };
-    }).sort((a, b) => (rank[a.state] - rank[b.state]) || a.name.localeCompare(b.name));
+    }).sort((a, b) => (rank[a.state] - rank[b.state]) || a.name.localeCompare(b.name, lang));
   }
 
   function renderFixed() {
     if (!router || !router.dhcp) return '';
     const rows = fixedRows();
-    const stale = rows.filter((r) => r.state !== 'online');
-    const body = !view.fixed ? '' : `<div class="lv-body">
-        <p class="lv-hint" style="margin-top:.7rem">${esc(t(rows.length ? 'fixedListHint' : 'fixedNone'))}</p>
-        ${!rows.length ? '' : `<div class="lv-scroll" id="lv-fixed-list">
-          ${rows.map((r) => `
+    const fixedRow = (r) => `
             <div class="lv-edit">
               <span class="lv-dot ${r.state === 'online' ? 'on' : ''}"></span>
               <span class="lv-grow">
                 <div class="lv-name">${esc(r.name)}</div>
                 <div class="lv-sub lv-ltr">${esc(`${r.ip} · ${r.mac}`)}</div>
-                ${r.state === 'online' ? '' : `<div class="lv-note">${esc(t(r.state === 'offline' ? 'offline' : 'unknownDevice'))}</div>`}
+                ${r.state === 'unknown' ? `<div class="lv-note">${esc(t('unknownDevice'))}</div>` : ''}
               </span>
               <button type="button" class="btn btn-sm btn-secondary" data-act="fixed-release" data-mac="${esc(r.mac)}" ${fixedBox.busy ? 'disabled' : ''}>${esc(t('release'))}</button>
-            </div>`).join('')}
+            </div>`;
+    const stale = rows.filter((r) => r.state !== 'online');
+    const body = !view.fixed ? '' : `<div class="lv-body">
+        <p class="lv-hint" style="margin-top:.7rem">${esc(t(rows.length ? 'fixedListHint' : 'fixedNone'))}</p>
+        ${!rows.length ? '' : `<div class="lv-scroll" id="lv-fixed-list">
+          ${stale.length ? `<div class="lv-group">${esc(t('groupOffline', { n: stale.length }))}</div>${stale.map(fixedRow).join('')}` : ''}
+          ${rows.length > stale.length ? `<div class="lv-group">${esc(t('groupOnline', { n: rows.length - stale.length }))}</div>${rows.filter((r) => r.state === 'online').map(fixedRow).join('')}` : ''}
         </div>`}
         ${stale.length ? `<button type="button" class="btn btn-danger" data-act="fixed-stale" ${fixedBox.busy ? 'disabled' : ''}>${esc(t(fixedBox.confirm ? 'releaseConfirm' : 'releaseStale', { n: stale.length }))}</button>` : ''}
         ${fixedBox.note ? `<div class="lv-note lv-ok" style="margin-top:.5rem">${esc(fixedBox.note)}</div>` : ''}
@@ -572,7 +582,7 @@
     if (!router) return [];
     return router.devices
       .filter((d) => d.id && !d.online && !d.fixedIp && !d.macs.some((m) => routerRule(m) || taken.has(m)))
-      .sort((a, b) => (a.custom - b.custom) || (a.name || '~').localeCompare(b.name || '~'));
+      .sort((a, b) => (a.custom - b.custom) || (a.name || '~').localeCompare(b.name || '~', lang));
   }
   const cleanPicked = (list) => list.filter((d) => (clean.picked ? clean.picked.has(d.id) : !d.custom));
 
