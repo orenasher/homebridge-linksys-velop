@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.4
+
+- donation link (PayPal)
+
 ## 1.7.3
 
 - The device list now shows every device, including the ones already in Apple Home, which appear ticked. Unticking removes a device from Apple Home. Before, those devices were missing from the list, which made connected devices look as if they were not there.
