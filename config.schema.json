@@ -11,21 +11,18 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "default": "Linksys Velop",
-        "required": true
+        "default": "Linksys Velop"
       },
       "host": {
         "title": "Router address",
         "type": "string",
         "placeholder": "192.168.1.1",
-        "description": "IP address of the main Velop node (the one connected to the modem).",
-        "required": true
+        "description": "IP address of the main Velop node (the one connected to the modem)."
       },
       "password": {
         "title": "Router admin password",
         "type": "string",
         "description": "The password used to manage the router (not the Wi-Fi password).",
-        "required": true,
         "x-schema-form": {
           "type": "password"
         }
@@ -302,6 +299,11 @@
         "type": "boolean",
         "default": true
       }
-    }
+    },
+    "required": [
+      "name",
+      "host",
+      "password"
+    ]
   }
 }
