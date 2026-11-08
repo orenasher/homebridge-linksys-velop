@@ -46,5 +46,9 @@
   "homepage": "https://github.com/orenasher/homebridge-linksys-velop#readme",
   "bin": {
     "linksys-velop": "cli.js"
+  },
+  "funding": {
+    "type": "paypal",
+    "url": "https://paypal.me/orenasher"
   }
 }

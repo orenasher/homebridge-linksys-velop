@@ -1,5 +1,7 @@
 # homebridge-linksys-velop
 
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=flat)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 Linksys Velop parental controls in Apple Home.
 
 Pause a child's device from the Home app, from Siri or from an automation,
