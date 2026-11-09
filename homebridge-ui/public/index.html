@@ -1,46 +1,127 @@
 <style>
-  .lv { font-size: 0.95rem; }
+  .lv { --lv-line: rgba(128, 128, 128, 0.28); --lv-soft: rgba(128, 128, 128, 0.1); --lv-green: #2fb344; --lv-red: #e5484d; --lv-amber: #e5a00d; --lv-blue: #3b82f6; font-size: 0.95rem; }
   .lv * { box-sizing: border-box; }
-  .lv h5 { font-size: 1.05rem; font-weight: 600; margin: 1.4rem 0 0.2rem; }
+  .lv h5 { font-size: 1.1rem; font-weight: 700; margin: 1.8rem 0 0.2rem; }
   .lv .lv-hint { opacity: 0.7; font-size: 0.85rem; margin: 0 0 0.6rem; }
-  .lv .lv-box { border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 0.6rem; padding: 0.85rem; margin-bottom: 0.6rem; }
-  .lv label.lv-label { display: block; font-size: 0.85rem; opacity: 0.8; margin: 0.6rem 0 0.2rem; }
+  .lv .lv-box { border: 1px solid var(--lv-line); border-radius: 0.9rem; padding: 0.85rem; margin-bottom: 0.6rem; }
+  .lv label.lv-label { display: block; font-size: 0.85rem; opacity: 0.8; margin: 0.7rem 0 0.25rem; }
   .lv .lv-row { display: flex; gap: 0.5rem; align-items: center; }
+  .lv .lv-wrap { flex-wrap: wrap; }
   .lv .lv-grow { flex: 1 1 auto; min-width: 0; }
-  .lv .lv-head { display: flex; gap: 0.6rem; align-items: center; cursor: pointer; background: none; border: 0; padding: 0; width: 100%; color: inherit; text-align: start; font: inherit; }
+  .lv .lv-head { display: flex; gap: 0.7rem; align-items: center; cursor: pointer; background: none; border: 0; padding: 0; width: 100%; color: inherit; text-align: start; font: inherit; }
   .lv .lv-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lv .lv-sub { opacity: 0.7; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lv .lv-dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: 0 0 auto; background: rgba(128, 128, 128, 0.5); }
-  .lv .lv-dot.on { background: #2fb344; }
-  .lv .lv-chev { flex: 0 0 auto; opacity: 0.6; transition: transform 0.15s; }
-  .lv .lv-open .lv-chev { transform: rotate(90deg); }
+  .lv .lv-chev { flex: 0 0 auto; opacity: 0.5; transition: transform 0.15s; }
+  .lv .lv-open > .lv-head .lv-chev, .lv .lv-open > .lv-dev-head .lv-chev, .lv .lv-card.lv-open > .lv-row .lv-chev { transform: rotate(90deg); }
   .lv[dir="rtl"] .lv-chev { transform: scaleX(-1); }
-  .lv[dir="rtl"] .lv-open .lv-chev { transform: rotate(90deg); }
-  .lv .lv-tag { font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0.05rem 0.5rem; white-space: nowrap; flex: 0 0 auto; }
-  .lv .lv-body { margin-top: 0.8rem; padding-top: 0.2rem; border-top: 1px solid rgba(128, 128, 128, 0.25); }
-  .lv .lv-checks { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; margin-top: 0.7rem; }
-  .lv .lv-sched { border: 1px dashed rgba(128, 128, 128, 0.45); border-radius: 0.5rem; padding: 0.6rem; margin-top: 0.5rem; }
-  .lv .lv-days { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
-  .lv .lv-day { flex: 1 1 0; min-width: 0; padding: 0.3rem 0; border-radius: 0.4rem; border: 1px solid transparent; font-size: 0.8rem; line-height: 1.4; }
-  .lv .lv-day.off { border-color: rgba(128, 128, 128, 0.5); background: transparent; color: inherit; }
-  .lv .lv-x { flex: 0 0 auto; border: 0; background: none; color: inherit; opacity: 0.6; font-size: 1.3rem; line-height: 1; padding: 0 0.3rem; }
-  .lv .lv-pick { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); cursor: pointer; margin: 0; }
-  .lv .lv-pick:last-child { border-bottom: 0; }
-  .lv .lv-pick input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin: 0; }
-  .lv .lv-edit { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.2rem; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
-  .lv .lv-edit:last-child { border-bottom: 0; }
+  .lv[dir="rtl"] .lv-open > .lv-head .lv-chev, .lv[dir="rtl"] .lv-open > .lv-dev-head .lv-chev, .lv[dir="rtl"] .lv-card.lv-open > .lv-row .lv-chev { transform: rotate(90deg); }
+  .lv .lv-tag { font-size: 0.72rem; border: 1px solid var(--lv-line); border-radius: 1rem; padding: 0.05rem 0.5rem; white-space: nowrap; flex: 0 0 auto; }
+  .lv .lv-body { margin-top: 0.8rem; padding-top: 0.2rem; border-top: 1px solid var(--lv-line); }
+  .lv .lv-x { flex: 0 0 auto; border: 0; background: none; color: inherit; opacity: 0.55; font-size: 1.4rem; line-height: 1; padding: 0 0.3rem; }
   .lv .lv-note { font-size: 0.8rem; }
-  .lv .lv-ip { display: inline-block; line-height: 1.5; font-size: 0.72rem; border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 1rem; padding: 0 0.45rem; margin: 0 0.15rem; white-space: nowrap; }
-  .lv .lv-ip.fixed { border-color: #2fb344; color: #2fb344; opacity: 1; }
-  .lv .lv-fix { margin-top: 0.35rem; }
-  .lv .lv-group { font-size: 0.8rem; font-weight: 600; opacity: 0.8; padding: 0.6rem 0.2rem 0.2rem; }
-  .lv .lv-scroll { max-height: 22rem; overflow-y: auto; border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 0.5rem; padding: 0 0.6rem; margin: 0.6rem 0; }
-  .lv .lv-ok { color: #2fb344; }
-  .lv .lv-err { color: #dc3545; font-size: 0.85rem; margin-top: 0.4rem; }
+  .lv .lv-ok { color: var(--lv-green); }
+  .lv .lv-err { color: var(--lv-red); font-size: 0.85rem; margin-top: 0.4rem; }
   .lv .lv-status { font-size: 0.85rem; margin-top: 0.6rem; }
   .lv .lv-ltr { direction: ltr; unicode-bidi: isolate; }
   .lv input.lv-ltr, .lv select.lv-ltr { text-align: left; }
   .lv .btn { white-space: nowrap; }
+  .lv .lv-scroll { max-height: 22rem; overflow-y: auto; border: 1px solid var(--lv-line); border-radius: 0.6rem; padding: 0 0.6rem; margin: 0.6rem 0; }
+  .lv .lv-group { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; opacity: 0.65; padding: 0.9rem 0.2rem 0.3rem; }
+
+  /* the emoji avatar with the connected dot on its corner */
+  .lv .lv-ava { position: relative; flex: 0 0 auto; width: 2.6rem; height: 2.6rem; border-radius: 0.8rem; background: var(--lv-soft); display: inline-flex; align-items: center; justify-content: center; font-size: 1.45rem; line-height: 1; border: 0; padding: 0; color: inherit; }
+  .lv .lv-ava.big { width: 3.4rem; height: 3.4rem; font-size: 1.9rem; border-radius: 1rem; }
+  .lv .lv-ava.small { width: 2rem; height: 2rem; font-size: 1.1rem; border-radius: 0.6rem; }
+  .lv .lv-ava .lv-dot { position: absolute; bottom: -0.1rem; inset-inline-end: -0.1rem; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: #9aa0a6; border: 2px solid var(--lv-bg, transparent); }
+  .lv .lv-ava .lv-dot.on { background: var(--lv-green); }
+  .lv button.lv-ava { cursor: pointer; }
+
+  /* status chips */
+  .lv .lv-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .lv .lv-chip { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; line-height: 1.4; padding: 0.1rem 0.55rem; border-radius: 1rem; background: var(--lv-soft); white-space: nowrap; }
+  .lv .lv-chip.green { background: rgba(47, 179, 68, 0.15); color: var(--lv-green); }
+  .lv .lv-chip.red { background: rgba(229, 72, 77, 0.14); color: var(--lv-red); }
+  .lv .lv-chip.amber { background: rgba(229, 160, 13, 0.16); color: var(--lv-amber); }
+  .lv .lv-chip.blue { background: rgba(59, 130, 246, 0.14); color: var(--lv-blue); }
+  .lv .lv-chip.off { opacity: 0.45; text-decoration: line-through; }
+
+  /* segmented filter */
+  .lv .lv-seg { display: flex; gap: 0.25rem; padding: 0.2rem; border-radius: 0.8rem; background: var(--lv-soft); margin: 0.4rem 0 0.6rem; overflow-x: auto; }
+  .lv .lv-seg button { flex: 1 1 auto; white-space: nowrap; border: 0; background: none; color: inherit; font: inherit; font-size: 0.78rem; padding: 0.4rem 0.35rem; border-radius: 0.6rem; opacity: 0.75; }
+  .lv .lv-seg button.on { background: var(--lv-raised, rgba(128, 128, 128, 0.28)); opacity: 1; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); }
+  .lv .lv-seg .n { display: inline-block; opacity: 0.6; font-weight: 400; margin-inline-start: 0.3rem; }
+
+  /* device list */
+  .lv .lv-list { border: 1px solid var(--lv-line); border-radius: 0.9rem; padding: 0 0.7rem; }
+  .lv .lv-dev { border-bottom: 1px solid var(--lv-line); }
+  .lv .lv-dev:last-child { border-bottom: 0; }
+  .lv .lv-dev-head { display: flex; gap: 0.7rem; align-items: center; width: 100%; padding: 0.6rem 0; background: none; border: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+  .lv .lv-dev.lv-open { background: linear-gradient(var(--lv-soft), transparent 4rem); margin: 0 -0.7rem; padding: 0 0.7rem; }
+  .lv .lv-panel { padding: 0.2rem 0 0.9rem; }
+  .lv .lv-facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 0.9rem; font-size: 0.85rem; margin: 0.8rem 0 0; }
+  .lv .lv-facts dt { font-weight: 400; opacity: 0.65; }
+  .lv .lv-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .lv .lv-ip { display: inline-block; line-height: 1.5; font-size: 0.72rem; border: 1px solid var(--lv-line); border-radius: 1rem; padding: 0 0.45rem; margin: 0 0.15rem; white-space: nowrap; }
+  .lv .lv-ip.fixed { border-color: var(--lv-green); color: var(--lv-green); }
+  .lv .lv-switchrow { display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.75rem; border-radius: 0.7rem; background: var(--lv-soft); margin-top: 0.8rem; cursor: pointer; }
+  .lv .lv-switchrow .form-check { margin: 0; padding: 0; min-height: 0; }
+  .lv .lv-switchrow .form-check-input { float: none; margin: 0; width: 2.6em; height: 1.4em; cursor: pointer; }
+
+  /* emoji picker */
+  .lv .lv-picker { border: 1px solid var(--lv-line); border-radius: 0.8rem; padding: 0.6rem; margin-top: 0.6rem; }
+  .lv .lv-picker h6 { font-size: 0.75rem; font-weight: 700; opacity: 0.6; margin: 0.5rem 0 0.25rem; }
+  .lv .lv-emojis { display: grid; grid-template-columns: repeat(auto-fill, minmax(2.4rem, 1fr)); gap: 0.2rem; }
+  .lv .lv-emojis button { border: 0; background: none; font-size: 1.4rem; line-height: 1; padding: 0.35rem 0; border-radius: 0.5rem; }
+  .lv .lv-emojis button:hover, .lv .lv-emojis button.on { background: var(--lv-soft); }
+  .lv .lv-emojis button.on { outline: 2px solid var(--lv-blue); }
+
+  /* parental controls cards */
+  .lv .lv-card { border: 1px solid var(--lv-line); border-radius: 1rem; padding: 0.75rem 0.85rem; margin-bottom: 0.6rem; }
+  .lv .lv-card.lv-open { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08); }
+  .lv .lv-card .lv-chips { margin-top: 0.55rem; }
+  .lv .lv-sect { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; opacity: 0.65; margin: 1.1rem 0 0.4rem; }
+  .lv .lv-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.5rem; }
+  .lv .lv-tile { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 0.8rem; border: 1px solid var(--lv-line); cursor: pointer; margin: 0; transition: background 0.15s, border-color 0.15s; }
+  .lv .lv-tile.on { border-color: rgba(59, 130, 246, 0.55); background: rgba(59, 130, 246, 0.07); }
+  .lv .lv-tile .e { font-size: 1.35rem; line-height: 1; }
+  .lv .lv-tile b { display: block; font-size: 0.88rem; }
+  .lv .lv-tile small { display: block; opacity: 0.65; font-size: 0.75rem; line-height: 1.3; }
+  .lv .lv-tile .form-check { margin: 0; padding: 0; min-height: 0; }
+  .lv .lv-tile .form-check-input { float: none; margin: 0; width: 2.4em; height: 1.3em; cursor: pointer; }
+  .lv .lv-sched { border: 1px solid var(--lv-line); border-radius: 0.8rem; padding: 0.65rem; margin-top: 0.5rem; }
+  .lv .lv-sched.dim { opacity: 0.55; }
+  .lv .lv-sched-title { font-weight: 600; border: 0; border-bottom: 1px dashed transparent; background: none; color: inherit; padding: 0.1rem 0; min-width: 0; }
+  .lv .lv-sched-title:focus { outline: none; border-bottom-color: var(--lv-line); }
+  .lv .lv-days { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
+  .lv .lv-day { flex: 1 1 0; min-width: 0; padding: 0.3rem 0; border-radius: 0.5rem; border: 1px solid transparent; font-size: 0.8rem; line-height: 1.4; }
+  .lv .lv-day.off { border-color: var(--lv-line); background: transparent; color: inherit; opacity: 0.7; }
+  .lv .lv-presets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+  .lv .lv-preset { border: 1px dashed var(--lv-line); background: none; color: inherit; border-radius: 1rem; padding: 0.3rem 0.75rem; font-size: 0.82rem; }
+  .lv .lv-preset:hover { background: var(--lv-soft); }
+
+  /* a day as 48 half hours, and the week as 7 such rows */
+  .lv .lv-bar { display: grid; grid-template-columns: repeat(48, 1fr); gap: 1px; height: 0.7rem; border-radius: 0.35rem; overflow: hidden; margin-top: 0.55rem; }
+  .lv .lv-bar i, .lv .lv-week i { display: block; background: rgba(47, 179, 68, 0.3); }
+  .lv .lv-bar i.b, .lv .lv-week i.b { background: var(--lv-red); }
+  .lv .lv-hours { display: flex; justify-content: space-between; font-size: 0.65rem; opacity: 0.55; margin-top: 0.15rem; }
+  .lv .lv-week { display: grid; grid-template-columns: 1.8rem repeat(48, 1fr); gap: 1px; row-gap: 3px; align-items: stretch; }
+  .lv .lv-week i { height: 0.65rem; }
+  .lv .lv-week i:nth-child(49n+2) { border-radius: 0.3rem 0 0 0.3rem; }
+  .lv .lv-week i:nth-child(49n+49) { border-radius: 0 0.3rem 0.3rem 0; }
+  .lv .lv-week span { font-size: 0.68rem; opacity: 0.6; line-height: 0.65rem; }
+  .lv .lv-legend { display: flex; gap: 0.9rem; font-size: 0.72rem; opacity: 0.7; margin-top: 0.35rem; }
+  .lv .lv-legend i { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 0.15rem; margin-inline-end: 0.3rem; vertical-align: -0.05rem; background: rgba(47, 179, 68, 0.3); }
+  .lv .lv-legend i.b { background: var(--lv-red); }
+  .lv .lv-chart { padding: 0.65rem; border-radius: 0.8rem; background: var(--lv-soft); }
+  .lv details.lv-adv { margin-top: 1rem; }
+  .lv details.lv-adv summary { font-size: 0.85rem; opacity: 0.75; cursor: pointer; }
+
+  /* simple rows: fixed addresses and clean-up */
+  .lv .lv-pick { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.2rem; border-bottom: 1px solid var(--lv-line); cursor: pointer; margin: 0; }
+  .lv .lv-pick:last-child { border-bottom: 0; }
+  .lv .lv-pick input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin: 0; }
+  .lv .lv-edit { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem 0.2rem; border-bottom: 1px solid var(--lv-line); }
+  .lv .lv-edit:last-child { border-bottom: 0; }
 </style>
 
 <div id="lv" class="lv"></div>
@@ -59,11 +140,13 @@
       connect: 'Find devices',
       refresh: 'Refresh list',
       loading: 'Reading the device list from the router...',
-      statusOk: '{online} devices connected now, {total} known. Parental Controls rules in use: {rules} of {max}.',
+      chipOnline: '{n} connected',
+      chipKnown: '{n} known',
+      chipRules: 'Parental Controls rules: {n} of {max}',
       needLogin: 'Enter the router address and password, then tap "{button}".',
-      inHome: 'In Apple Home',
-      inHomeHint: 'Tap a device to choose what it gets in Apple Home.',
-      none: 'No devices yet. Tick devices in the list below.',
+      parental: 'Parental controls in Apple Home',
+      parentalHint: 'Tap a device to choose its switches and schedules.',
+      none: 'No devices yet. Open a device in the list below and turn on "In Apple Home".',
       layout: 'Tiles in Apple Home',
       layoutDevice: 'One tile per device',
       layoutSingle: 'One tile for everything',
@@ -72,51 +155,101 @@
       auto: 'from Parental Controls',
       online: 'connected',
       offline: 'not connected',
+      stOpen: 'internet on',
+      stPaused: 'paused',
+      stScheduled: 'on a schedule',
+      stMixed: 'partly paused',
+      stDisabled: 'Parental Controls are off on the router',
+      stNone: 'no limits on the router',
       name: 'Name in Apple Home',
+      tilesTitle: 'What you get in Apple Home',
       pause: 'Pause switch',
+      pauseDesc: 'Stops the internet at a tap',
       schedSwitch: 'Schedule switches',
+      schedSwitchDesc: 'One switch for each schedule',
       sensor: 'Connected sensor',
+      sensorDesc: 'Shows when the device is on the network',
+      pillPause: 'Pause',
+      pillSched: '{n} schedules',
+      pillSched1: '1 schedule',
+      pillSchedDefault: 'Schedule',
+      pillSensor: 'Sensor',
+      routerNow: 'On the router now',
+      weekPlan: 'Your week',
+      noNet: 'No internet',
+      net: 'Internet',
       schedules: 'Schedules',
-      noSchedules: 'No schedules set here. The Schedule switch uses the schedule from the Linksys app, or the default one.',
+      noSchedules: 'No schedules yet. The Schedule switch uses the schedule from the Linksys app, or the default one. Add one below:',
       schedHint: 'Each schedule gets its own switch in Apple Home. Schedules set here replace the one in the Linksys app for this device.',
-      addSchedule: 'Add schedule',
-      schedName: 'Schedule name',
-      from: 'Pause from',
+      schedOff: 'The Schedule switches are off above, so these schedules are not used.',
+      addSchedule: 'Add a schedule',
+      from: 'No internet from',
       until: 'Until',
       sameTime: 'The two times must be different.',
-      night: 'Night',
+      everyDay: 'every day',
+      varies: 'varies by day',
+      allDay: 'all day',
+      presetNight: 'Bedtime',
+      presetSchool: 'School',
+      presetHomework: 'Homework',
+      presetDinner: 'Dinner',
+      presetCustom: 'Custom',
       schedule: 'Schedule',
+      advanced: 'Advanced',
       macs: 'Network addresses (MAC)',
       macsHint: 'A console has one address for cable and another for Wi-Fi. Put both here, separated by a comma, to control them together.',
       remove: 'Remove from Apple Home',
       network: 'Devices on your network',
-      networkHint: 'Every device the router knows. A tick means the device is in Apple Home: tick to add it, untick to remove it.',
-      inHomeTag: 'in Apple Home',
+      networkHint: 'Tap a device to see its details, give it an icon, rename it, keep its IP fixed or add it to Apple Home.',
+      fAll: 'All',
+      fOnline: 'Connected',
+      fOffline: 'Not connected',
+      fHome: '🏠 Home',
       showing: 'Showing {shown} of {total}.',
       groupOffline: 'Not connected ({n})',
       groupOnline: 'Connected ({n})',
-      showConnected: 'Show the {n} connected ones too',
-      hideConnected: 'Hide the connected ones',
-      noStale: 'Every fixed address belongs to a device that is connected right now.',
-      search: 'Search by name or address',
-      onlyOnline: 'Connected now only',
-      renameMode: 'Rename devices and set fixed IPs on the router',
-      renameTitle: 'Names and fixed IPs',
-      renameHint: 'Type a name and move on to the next field. It is saved on the router right away and shows in the Linksys app. Leave a field empty to go back to the name the device reports. Names in Apple Home are set separately, in the device card above.',
-      fixedHint: '"Keep this IP" tells the router to always give the device the address it has now. "Release IP" lets the address change again.',
+      search: 'Search by name, IP or MAC',
+      nothing: 'No devices match.',
+      more: 'Show {n} more',
+      icon: 'Icon',
+      changeIcon: 'Choose icon',
+      autoIcon: 'Automatic',
+      iconHint: 'Tap an emoji, or type any emoji in the box. Icons show on this screen only: Apple Home does not allow emoji in names.',
+      iconOwn: 'Or type an emoji',
+      catDevices: 'Phones and computers',
+      catMedia: 'TV, music and games',
+      catHome: 'Smart home',
+      catPeople: 'People',
+      catOther: 'Other',
+      inHomeSwitch: 'In Apple Home',
+      inHomeSwitchHint: 'Pause, schedule and connected switches for this device.',
+      openParental: 'Parental control settings',
+      routerName: 'Name on the router',
+      routerNameHint: 'Saved on the router when you leave the field, and shown in the Linksys app. Leave it empty to go back to the name the device reports.',
+      factStatus: 'Status',
+      factIp: 'IP address',
+      factLink: 'Connection',
+      factNode: 'Connected to',
+      factMaker: 'Device',
+      factMac: 'MAC',
+      wifi: 'Wi-Fi',
+      wired: 'Cable',
+      guest: 'guest network',
       ipFixed: 'fixed IP',
       ipDynamic: 'changing IP',
       makeFixed: 'Keep this IP',
       release: 'Release IP',
+      fixedHint: '"Keep this IP" tells the router to always give the device the address it has now.',
       applying: 'The router is applying the change. The network may pause for a moment.',
       saving: 'saving...',
       saved: 'saved',
       renameFail: 'not saved: {msg}',
-      nothing: 'No devices match.',
-      more: 'Show {n} more',
       fixedTitle: 'Fixed IP addresses',
       fixedListHint: 'Every address the router keeps fixed. One that belongs to a device that has not been connected for a long time is probably no longer needed. Releasing frees the address; the device itself is not removed. Keep the ones other things rely on, such as devices Homebridge reaches by their IP.',
       fixedNone: 'The router keeps no fixed addresses.',
+      noStale: 'Every fixed address belongs to a device that is connected right now.',
+      showConnected: 'Show the {n} connected ones too',
+      hideConnected: 'Hide the connected ones',
       unknownDevice: 'not in the device list',
       releaseStale: 'Release all {n} that are not connected',
       releaseConfirm: 'Tap again to release {n} addresses.',
@@ -166,11 +299,13 @@
       connect: 'מצא מכשירים',
       refresh: 'רענן רשימה',
       loading: 'קורא את רשימת המכשירים מהראוטר...',
-      statusOk: '{online} מכשירים מחוברים כרגע, {total} מוכרים. חוקי בקרת הורים בשימוש: {rules} מתוך {max}.',
+      chipOnline: '{n} מחוברים',
+      chipKnown: '{n} מוכרים',
+      chipRules: 'חוקי בקרת הורים: {n} מתוך {max}',
       needLogin: 'הזן כתובת וסיסמה ולחץ על "{button}".',
-      inHome: 'ב-Apple Home',
-      inHomeHint: 'לחץ על מכשיר כדי לבחור מה הוא מקבל ב-Apple Home.',
-      none: 'אין עדיין מכשירים. סמן מכשירים ברשימה למטה.',
+      parental: 'בקרת הורים ב-Apple Home',
+      parentalHint: 'לחץ על מכשיר כדי לבחור את המתגים והתזמונים שלו.',
+      none: 'אין עדיין מכשירים. פתח מכשיר ברשימה למטה והפעל את "ב-Apple Home".',
       layout: 'אריחים ב-Apple Home',
       layoutDevice: 'אריח לכל מכשיר',
       layoutSingle: 'אריח אחד לכל המכשירים',
@@ -179,51 +314,101 @@
       auto: 'מבקרת הורים',
       online: 'מחובר',
       offline: 'לא מחובר',
+      stOpen: 'יש אינטרנט',
+      stPaused: 'מושהה',
+      stScheduled: 'לפי תזמון',
+      stMixed: 'מושהה חלקית',
+      stDisabled: 'בקרת ההורים כבויה בראוטר',
+      stNone: 'אין הגבלות בראוטר',
       name: 'שם ב-Apple Home',
+      tilesTitle: 'מה יופיע ב-Apple Home',
       pause: 'מתג השהיה',
+      pauseDesc: 'עוצר את האינטרנט בלחיצה',
       schedSwitch: 'מתגי תזמון',
+      schedSwitchDesc: 'מתג לכל אחד מהתזמונים',
       sensor: 'חיישן מחובר',
+      sensorDesc: 'מראה מתי המכשיר מחובר לרשת',
+      pillPause: 'השהיה',
+      pillSched: '{n} תזמונים',
+      pillSched1: 'תזמון אחד',
+      pillSchedDefault: 'תזמון',
+      pillSensor: 'חיישן',
+      routerNow: 'מה קורה בראוטר עכשיו',
+      weekPlan: 'השבוע שלך',
+      noNet: 'אין אינטרנט',
+      net: 'יש אינטרנט',
       schedules: 'תזמונים',
-      noSchedules: 'לא הוגדרו כאן תזמונים. מתג התזמון משתמש בתזמון מאפליקציית Linksys, או בברירת המחדל.',
+      noSchedules: 'אין עדיין תזמונים. מתג התזמון משתמש בתזמון מאפליקציית Linksys, או בברירת המחדל. אפשר להוסיף כאן:',
       schedHint: 'כל תזמון מקבל מתג משלו ב-Apple Home. תזמונים שמוגדרים כאן מחליפים את התזמון באפליקציית Linksys למכשיר הזה.',
+      schedOff: 'מתגי התזמון כבויים למעלה, ולכן התזמונים האלה לא בשימוש.',
       addSchedule: 'הוסף תזמון',
-      schedName: 'שם התזמון',
-      from: 'השהיה מ-',
+      from: 'אין אינטרנט מ-',
       until: 'עד',
       sameTime: 'שתי השעות חייבות להיות שונות.',
-      night: 'לילה',
+      everyDay: 'כל יום',
+      varies: 'משתנה לפי יום',
+      allDay: 'כל היום',
+      presetNight: 'שינה',
+      presetSchool: 'בית ספר',
+      presetHomework: 'שיעורי בית',
+      presetDinner: 'ארוחת ערב',
+      presetCustom: 'מותאם אישית',
       schedule: 'תזמון',
+      advanced: 'מתקדם',
       macs: 'כתובות רשת (MAC)',
       macsHint: 'לקונסולה יש כתובת אחת לכבל ואחרת ל-Wi-Fi. כתוב כאן את שתיהן, מופרדות בפסיק, כדי לשלוט בהן יחד.',
       remove: 'הסר מ-Apple Home',
-      network: 'מכשירים ברשת שלך',
-      networkHint: 'כל המכשירים שהראוטר מכיר. סימון V אומר שהמכשיר נמצא ב-Apple Home: מסמנים כדי להוסיף, ומבטלים סימון כדי להסיר.',
-      inHomeTag: 'ב-Apple Home',
+      network: 'המכשירים ברשת שלך',
+      networkHint: 'לחץ על מכשיר כדי לראות פרטים, לבחור לו אייקון, לשנות שם, לקבע IP או להוסיף אותו ל-Apple Home.',
+      fAll: 'הכול',
+      fOnline: 'מחוברים',
+      fOffline: 'לא מחוברים',
+      fHome: '🏠 בבית',
       showing: 'מוצגים {shown} מתוך {total}.',
       groupOffline: 'לא מחוברים ({n})',
       groupOnline: 'מחוברים ({n})',
-      showConnected: 'הצג גם את {n} המחוברים',
-      hideConnected: 'הסתר את המחוברים',
-      noStale: 'כל הכתובות הקבועות שייכות למכשירים שמחוברים כרגע.',
-      search: 'חיפוש לפי שם או כתובת',
-      onlyOnline: 'רק מחוברים כרגע',
-      renameMode: 'שינוי שמות וקיבוע כתובות IP בראוטר',
-      renameTitle: 'שמות וכתובות IP קבועות',
-      fixedHint: '"קבע את ה-IP" מורה לראוטר לתת למכשיר תמיד את הכתובת שיש לו עכשיו. "שחרר IP" מאפשר לכתובת להשתנות שוב.',
+      search: 'חיפוש לפי שם, IP או MAC',
+      nothing: 'אין מכשירים מתאימים.',
+      more: 'הצג עוד {n}',
+      icon: 'אייקון',
+      changeIcon: 'בחר אייקון',
+      autoIcon: 'אוטומטי',
+      iconHint: 'לחץ על אימוג׳י, או הקלד כל אימוג׳י בתיבה. האייקונים מופיעים רק במסך הזה: Apple Home לא מאפשר אימוג׳י בשמות.',
+      iconOwn: 'או הקלד אימוג׳י',
+      catDevices: 'טלפונים ומחשבים',
+      catMedia: 'טלוויזיה, מוזיקה ומשחקים',
+      catHome: 'בית חכם',
+      catPeople: 'אנשים',
+      catOther: 'אחר',
+      inHomeSwitch: 'ב-Apple Home',
+      inHomeSwitchHint: 'מתגי השהיה, תזמון וחיישן מחובר למכשיר הזה.',
+      openParental: 'הגדרות בקרת הורים',
+      routerName: 'שם בראוטר',
+      routerNameHint: 'נשמר בראוטר כשיוצאים מהשדה, ומופיע גם באפליקציית Linksys. שדה ריק מחזיר את השם שהמכשיר מדווח בעצמו.',
+      factStatus: 'מצב',
+      factIp: 'כתובת IP',
+      factLink: 'חיבור',
+      factNode: 'מחובר דרך',
+      factMaker: 'מכשיר',
+      factMac: 'MAC',
+      wifi: 'Wi-Fi',
+      wired: 'כבל',
+      guest: 'רשת אורחים',
       ipFixed: 'IP קבוע',
       ipDynamic: 'IP משתנה',
       makeFixed: 'קבע את ה-IP',
       release: 'שחרר IP',
+      fixedHint: '"קבע את ה-IP" מורה לראוטר לתת למכשיר תמיד את הכתובת שיש לו עכשיו.',
       applying: 'הראוטר מחיל את השינוי. ייתכן שהרשת תיעצר לרגע.',
-      renameHint: 'מקלידים שם ועוברים לשדה הבא. השם נשמר מיד בראוטר ומופיע באפליקציית Linksys. שדה ריק מחזיר את השם שהמכשיר מדווח בעצמו. שמות ב-Apple Home נקבעים בנפרד, בכרטיס המכשיר למעלה.',
       saving: 'שומר...',
       saved: 'נשמר',
       renameFail: 'לא נשמר: {msg}',
-      nothing: 'אין מכשירים מתאימים.',
-      more: 'הצג עוד {n}',
       fixedTitle: 'כתובות IP קבועות',
       fixedListHint: 'כל הכתובות שהראוטר שומר כקבועות. כתובת של מכשיר שלא מחובר כבר הרבה זמן כנראה כבר לא נחוצה. שחרור מפנה את הכתובת, והמכשיר עצמו לא נמחק. השאר את אלה שדברים אחרים תלויים בהן, למשל מכשירים ש-Homebridge פונה אליהם לפי IP.',
       fixedNone: 'הראוטר לא שומר כתובות קבועות.',
+      noStale: 'כל הכתובות הקבועות שייכות למכשירים שמחוברים כרגע.',
+      showConnected: 'הצג גם את {n} המחוברים',
+      hideConnected: 'הסתר את המחוברים',
       unknownDevice: 'לא ברשימת המכשירים',
       releaseStale: 'שחרר את כל {n} הלא מחוברים',
       releaseConfirm: 'לחץ שוב כדי לשחרר {n} כתובות.',
@@ -266,7 +451,59 @@
     },
   };
 
+  // The emoji offered in the picker, by group.
+  const EMOJI = [
+    ['catDevices', ['📱', '💻', '🖥️', '⌚', '🎧', '⌨️', '🖨️', '🗄️', '📡', '🌐', '📖', '🔋']],
+    ['catMedia', ['📺', '🎮', '🕹️', '🔊', '📻', '🎵', '🎬', '📽️', '🎤', '🎲']],
+    ['catHome', ['💡', '🔌', '🌀', '❄️', '🔥', '🌡️', '🪟', '🚪', '🔒', '🔔', '📷', '🤖', '🧺', '🍽️', '🍳', '☕', '🧊', '💧', '🌱', '🏠', '⚡']],
+    ['catPeople', ['👦', '👧', '🧒', '👨', '👩', '🧑', '👶', '👴', '👵', '👪', '🧑‍💻', '🧑‍🎓']],
+    ['catOther', ['🚗', '🐶', '🐱', '⭐', '❤️', '💙', '💚', '💜', '🔧', '🎁', '🏫', '❔']],
+  ];
+
+  // A first guess at an icon, from what the device is called and what it says about itself.
+  // The order matters: "Apple Watch" is a watch before it is anything Apple, "Hue Bridge" a hub before a light.
+  const GUESS = [
+    [/apple ?tv|appletv|media ?player|tvos|chromecast|fire ?tv|roku|shield|android ?tv|google ?tv|bravia|webos|tizen|\btv|tv\b|television|טלוויזיה|טלויזיה|מקלט/, '📺'],
+    [/watch|שעון/, '⌚'],
+    [/playstation|\bps[345]\b|\bps[345]-|xbox|nintendo|steam ?deck|game ?console|gameconsole|קונסולה|פלייסטיישן|אקסבוקס/, '🎮'],
+    [/homepod|\becho\b|alexa|sonos|speaker|nest ?(audio|mini)|google ?home|bose|\bjbl|רמקול/, '🔊'],
+    [/airpods|headphone|beats|אוזניות/, '🎧'],
+    [/doorbell|פעמון/, '🔔'],
+    [/camera|\bcam\b|ipcam|\bcam-|ezviz|tapo ?c|hikvision|reolink|eufy|wyze|arlo|imou|dahua|מצלמה/, '📷'],
+    [/vacuum|roborock|roomba|irobot|dreame|ecovacs|robot|שואב/, '🤖'],
+    [/printer|epson|officejet|laserjet|deskjet|\bbrother|מדפסת/, '🖨️'],
+    [/air ?con|aircon|\bac\b|daikin|sensibo|tadiran|electra|climate|מזגן/, '❄️'],
+    [/boiler|heater|switcher|דוד|רדיאטור/, '🔥'],
+    [/curtain|blind|shutter|roller|תריס|וילון/, '🪟'],
+    [/\block|nuki|yale|מנעול/, '🔒'],
+    [/\bfan\b|ventilat|מאוורר/, '🌀'],
+    [/fridge|refrigerator|מקרר/, '🧊'],
+    [/dish ?wash|מדיח/, '🍽️'],
+    [/wash|dryer|כביסה|מייבש/, '🧺'],
+    [/coffee|nespresso|קפה/, '☕'],
+    [/oven|microwave|kitchen|תנור|מטבח/, '🍳'],
+    [/thermostat|tado|ecobee|תרמוסטט/, '🌡️'],
+    [/\bhub\b|bridge|zigbee|matter|homey|smartthings|aqara|hubitat|home ?assistant|homebridge|רכזת/, '🏠'],
+    [/bulb|light|lamp|\bhue\b|wled|yeelight|lifx|\bled\b|strip|נורה|מנורה|תאורה/, '💡'],
+    [/plug|sonoff|shelly|tasmota|espressif|\besp|tuya|outlet|socket|meross|kasa|broadlink|switch|שקע|ממסר|מפסק/, '🔌'],
+    [/router|velop|access ?point|extender|repeater|\bmesh\b|\bdeco\b|eero|unifi|ubiquiti|מגדיל טווח/, '📡'],
+    [/\bnas\b|storage|synology|qnap|server|raspberry|\bpi\b|\brpi|proxmox|unraid|שרת/, '🗄️'],
+    [/kindle|e-?reader|kobo/, '📖'],
+    [/macbook|macos|\bmbp\b|laptop|notebook|thinkpad|chromebook|surface|לפטופ|מחשב נייד/, '💻'],
+    [/imac|mac ?mini|mac ?studio|desktop|\bpc\b|windows|computer|workstation|מחשב/, '🖥️'],
+    [/iphone|ipad|tablet|android|galaxy|pixel|phone|oneplus|xiaomi|redmi|huawei|oppo|motorola|\bios\b|mobile|טלפון|פלאפון|אייפון|טאבלט|סלולרי/, '📱'],
+    [/\bcar\b|tesla|רכב/, '🚗'],
+  ];
+
   const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const SCHOOL_DAYS = { he: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'], en: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] };
+  const PRESETS = [
+    { key: 'presetNight', emoji: '🌙', start: '22:00', end: '07:00' },
+    { key: 'presetSchool', emoji: '🏫', start: '08:00', end: '13:00', school: true },
+    { key: 'presetHomework', emoji: '📚', start: '16:00', end: '18:00', school: true },
+    { key: 'presetDinner', emoji: '🍽️', start: '19:00', end: '20:00' },
+    { key: 'presetCustom', emoji: '✏️', start: '14:00', end: '16:00' },
+  ];
   const TIMES = [];
   for (let i = 0; i < 48; i++) TIMES.push(`${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
   const PAGE = 40;
@@ -278,8 +515,9 @@
   let router = null; // answer of the /devices request
   let error = '';
   let busy = false;
-  let current = []; // the "In Apple Home" list as last rendered
-  const view = { open: null, search: '', onlyOnline: true, limit: PAGE, options: false, rename: false, clean: false, fixed: false };
+  let current = []; // the parental-controls list as last rendered
+  // open: the parental card that is open; dev: the network device that is open; picker: where the emoji picker is open
+  const view = { open: null, dev: null, picker: null, filter: 'all', search: '', limit: PAGE, options: false, clean: false, fixed: false };
   // The fixed-address box is for finding old addresses, so it starts with only the unconnected ones.
   const fixedBox = { confirm: false, busy: false, note: '', error: '', all: false };
   // Cleaning up old devices: which ones are ticked (null = the default choice), and where the removal stands.
@@ -298,6 +536,8 @@
   const macsOf = (d) => [...new Set((Array.isArray(d && d.macs) ? d.macs : [d && d.mac]).map(norm).filter(Boolean))];
   const homeName = (text) => String(text || '').replace(/[^\p{L}\p{N} ']/gu, ' ').replace(/\s+/g, ' ').replace(/^[ ']+|[ ']+$/g, '');
   const newId = () => 's' + Math.random().toString(36).slice(2, 8);
+  const errText = (e) => (e && (e.message || (e.error && e.error.message))) || String(e);
+  const ltr = (text) => `<span class="lv-ltr">${esc(text)}</span>`;
 
   // ------------------------------------------------------------- data helpers
 
@@ -315,7 +555,34 @@
     return macs.some((mac) => { const d = routerDevice(mac); return d && d.online; });
   }
 
-  /** Devices that will be in Apple Home: the ones in the settings, plus the ones the plugin adds from the router's rules. */
+  /** The icon of a device: the one picked on this screen, or a guess. */
+  function iconFor(macs, name) {
+    const picked = cfg.icons || {};
+    for (const mac of macs) if (picked[mac]) return picked[mac];
+    const known = macs.map(routerDevice).filter(Boolean);
+    const text = [name, ...known.flatMap((d) => [d.name, d.hostname, d.type, d.maker, d.model, d.os])].join(' ').toLowerCase();
+    for (const [pattern, emoji] of GUESS) if (pattern.test(text)) return emoji;
+    // Phones, tablets, watches and laptops hide behind a made-up (private) address; other things rarely do.
+    if (macs.some((m) => /^.[26AE]/.test(m))) return '📱';
+    return '❔';
+  }
+  function setIcon(macs, emoji) {
+    const icons = { ...(cfg.icons || {}) };
+    macs.forEach((m) => delete icons[m]);
+    if (emoji) icons[macs[0]] = emoji;
+    if (Object.keys(icons).length) cfg.icons = icons; else delete cfg.icons;
+  }
+  /** The first character a person typed, emoji included (an emoji can be several code points). */
+  function firstSymbol(text) {
+    const value = String(text || '').trim();
+    if (!value) return '';
+    if (window.Intl && Intl.Segmenter) {
+      for (const part of new Intl.Segmenter().segment(value)) return part.segment;
+    }
+    return Array.from(value)[0];
+  }
+
+  /** Devices in Apple Home: the ones in the settings, plus the ones the plugin adds from the router's rules. */
   function chosen() {
     const list = [];
     const claimed = new Set();
@@ -352,6 +619,63 @@
     return typeof cfg[globalKey] === 'boolean' ? cfg[globalKey] : true;
   }
 
+  // Schedules as 7 rows of 48 half hours, Sunday first ('0' = no internet). Same rules as lib/schedule.js.
+  const slot = (time) => { const [h, m] = String(time || '0:0').split(':').map(Number); return (h * 2 + (m >= 30 ? 1 : 0)) % 48; };
+  function scheduleWeek(s) {
+    const grid = DAYS.map(() => new Array(48).fill('1'));
+    const a = slot(s.start);
+    const b = slot(s.end);
+    if (a === b) return grid.map((r) => r.join(''));
+    const days = Array.isArray(s.days) && s.days.length ? s.days : DAYS;
+    for (const day of days) {
+      const d = DAYS.indexOf(day);
+      if (d < 0) continue;
+      if (a < b) { for (let i = a; i < b; i++) grid[d][i] = '0'; } else {
+        for (let i = a; i < 48; i++) grid[d][i] = '0';
+        for (let i = 0; i < b; i++) grid[(d + 1) % 7][i] = '0';
+      }
+    }
+    return grid.map((r) => r.join(''));
+  }
+  function combine(weeks) {
+    return DAYS.map((_, d) => {
+      let row = '';
+      for (let i = 0; i < 48; i++) row += weeks.every((w) => w[d][i] === '1') ? '1' : '0';
+      return row;
+    });
+  }
+  /** "22:00–06:00, 14:00–16:00" for one day; a block that runs past midnight is shown whole. */
+  function ranges(day) {
+    if (!day.includes('1')) return t('allDay');
+    const out = [];
+    for (let i = 0; i < 48; i++) {
+      if (day[i] !== '0' || day[(i + 47) % 48] !== '1') continue;
+      let j = i;
+      while (day[j % 48] === '0') j++;
+      out.push(`\u2066${TIMES[i]}–${TIMES[j % 48]}\u2069`); // kept left to right inside Hebrew text
+    }
+    return out.join(', ');
+  }
+  function weekText(week) {
+    return week.every((d) => d === week[0]) ? ranges(week[0]) : t('varies');
+  }
+  function daysText(days) {
+    if (!Array.isArray(days) || !days.length || days.length === 7) return t('everyDay');
+    return DAYS.filter((d) => days.includes(d)).map((d) => t('days')[DAYS.indexOf(d)]).join(' ');
+  }
+
+  /** What the router does right now for these addresses: [chip colour, text]. */
+  function routerState(macs) {
+    if (!router) return null;
+    if (router.parentalEnabled === false) return ['', t('stDisabled')];
+    const rule = macs.map(routerRule).find(Boolean);
+    if (!rule) return ['green', t('stNone')];
+    if (rule.state === 'paused') return ['red', `⏸ ${t('stPaused')}`];
+    if (rule.state === 'open') return ['green', t('stOpen')];
+    if (rule.state === 'scheduled' && rule.week) return ['amber', `🕘 ${t('stScheduled')} · ${weekText(rule.week)}`];
+    return ['amber', t('stMixed')];
+  }
+
   let pushTimer = null;
   function push() {
     clearTimeout(pushTimer);
@@ -365,32 +689,80 @@
         for (const [k, v] of Object.entries(out.labels)) if (!String(v || '').trim()) delete out.labels[k];
         if (!Object.keys(out.labels).length) delete out.labels;
       }
+      if (out.icons && !Object.keys(out.icons).length) delete out.icons;
       for (const d of out.devices || []) if (Array.isArray(d.schedules) && !d.schedules.length) delete d.schedules;
       hb.updatePluginConfig([out]);
     }, 120);
   }
 
-  // ------------------------------------------------------------------ render
+  // ------------------------------------------------------------------ render pieces
 
   const check = (id, label, checked, attrs) => `
     <div class="form-check">
       <input class="form-check-input" type="checkbox" id="${id}" ${checked ? 'checked' : ''} ${attrs}>
       <label class="form-check-label" for="${id}">${esc(label)}</label>
     </div>`;
+  const toggle = (checked, attrs) => `<span class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" ${checked ? 'checked' : ''} ${attrs}></span>`;
   const timeSelect = (value, attrs) => `
     <select class="form-select lv-ltr" ${attrs}>${TIMES.map((x) => `<option ${x === value ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
   const chevron = '<svg class="lv-chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const avatar = (emoji, online, size, attrs) => {
+    const tag = attrs ? 'button' : 'span';
+    return `<${tag} ${attrs ? `type="button" ${attrs}` : ''} class="lv-ava ${size || ''}">${esc(emoji)}${online == null ? '' : `<span class="lv-dot ${online ? 'on' : ''}"></span>`}</${tag}>`;
+  };
 
-  function renderSchedule(s, i, k) {
+  const hours = '<div class="lv-hours lv-ltr"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>';
+  const legend = () => `<div class="lv-legend"><span><i class="b"></i>${esc(t('noNet'))}</span><span><i></i>${esc(t('net'))}</span></div>`;
+  /** One day as a bar: red where there is no internet. */
+  const dayBar = (row) => `<div class="lv-bar lv-ltr" aria-hidden="true">${[...row].map((c) => `<i class="${c === '0' ? 'b' : ''}"></i>`).join('')}</div>${hours}`;
+  /** The whole week, one bar per day. */
+  function weekChart(week) {
+    const cells = week.map((row, d) => `<span>${esc(t('days')[d])}</span>${[...row].map((c) => `<i class="${c === '0' ? 'b' : ''}"></i>`).join('')}`).join('');
+    return `<div class="lv-week lv-ltr" aria-hidden="true">${cells}</div><div style="padding-left:1.9rem" class="lv-ltr">${hours}</div>${legend()}`;
+  }
+
+  function renderPicker(where, macs, current) {
+    const own = cfg.icons && macs.some((m) => cfg.icons[m]);
+    return `
+      <div class="lv-picker">
+        <div class="lv-row lv-wrap">
+          <span class="lv-grow lv-hint" style="margin:0">${esc(t('iconHint'))}</span>
+        </div>
+        ${EMOJI.map(([cat, list]) => `
+          <h6>${esc(t(cat))}</h6>
+          <div class="lv-emojis">${list.map((e) => `<button type="button" class="${own && e === current ? 'on' : ''}" data-act="icon-set" data-where="${where}" data-mac="${esc(macs[0])}" data-e="${esc(e)}">${e}</button>`).join('')}</div>`).join('')}
+        <div class="lv-row" style="margin-top:.7rem">
+          <input class="form-control lv-grow" type="text" maxlength="16" placeholder="${esc(t('iconOwn'))} 😀" data-ch="icon-own" data-where="${where}" data-mac="${esc(macs[0])}" style="max-width:14rem">
+          <button type="button" class="btn btn-sm btn-secondary" data-act="icon-auto" data-where="${where}" data-mac="${esc(macs[0])}" ${own ? '' : 'disabled'}>${esc(t('autoIcon'))}</button>
+        </div>
+      </div>`;
+  }
+  /** The macs a picker works on: the whole Apple Home entry, or the whole router device. */
+  function pickerMacs(where, mac) {
+    if (where === 'home') { const item = current.find((x) => x.macs.includes(mac)); if (item) return item.macs; }
+    const d = routerDevice(mac);
+    return d ? d.macs : [mac];
+  }
+
+  // ------------------------------------------------------------------ parental controls
+
+  function renderSchedule(s, i, k, active) {
     const days = Array.isArray(s.days) && s.days.length ? s.days : DAYS;
     const same = s.start && s.start === s.end;
+    // a typical day: red from the start time to the end time, also when that runs past midnight
+    const a = slot(s.start);
+    const b = slot(s.end);
+    let day = '';
+    for (let n = 0; n < 48; n++) day += (a < b ? n >= a && n < b : a > b && (n >= a || n < b)) ? '0' : '1';
     return `
-      <div class="lv-sched">
+      <div class="lv-sched ${active ? '' : 'dim'}">
         <div class="lv-row">
-          <input class="form-control lv-grow" type="text" placeholder="${esc(t('schedName'))}" value="${esc(s.name)}" data-in="sched-name" data-i="${i}" data-k="${k}">
+          <input class="lv-sched-title lv-grow" type="text" placeholder="${esc(t('schedule'))}" value="${esc(s.name)}" data-in="sched-name" data-i="${i}" data-k="${k}">
+          <span class="lv-sub" style="flex:0 0 auto">${ltr(`${s.start}–${s.end}`)} · ${esc(daysText(s.days))}</span>
           <button type="button" class="lv-x" aria-label="remove" data-act="sched-remove" data-i="${i}" data-k="${k}">&times;</button>
         </div>
-        <div class="lv-row" style="margin-top:.5rem">
+        ${dayBar(day)}
+        <div class="lv-row" style="margin-top:.4rem">
           <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('from'))}</label>${timeSelect(s.start, `data-ch="sched-start" data-i="${i}" data-k="${k}"`)}</div>
           <div class="lv-grow"><label class="lv-label" style="margin-top:0">${esc(t('until'))}</label>${timeSelect(s.end, `data-ch="sched-end" data-i="${i}" data-k="${k}"`)}</div>
         </div>
@@ -401,66 +773,159 @@
       </div>`;
   }
 
-  /** "10.0.0.5 [fixed IP] · AA:BB:.." - the address, whether the router keeps it fixed, and the MAC addresses. */
-  function addressLine(d, macs, short) {
-    const parts = [];
-    if (d && (d.ip || d.fixedIp)) {
-      let tag = '';
-      if (router && router.dhcp) {
-        const moved = d.fixedIp && d.ip && d.fixedIp !== d.ip ? ` ${d.fixedIp}` : '';
-        const dir = lang === 'he' ? 'rtl' : 'ltr';
-        tag = d.fixedIp ? `<span class="lv-ip fixed" dir="${dir}">${esc(t('ipFixed') + moved)}</span>` : `<span class="lv-ip" dir="${dir}">${esc(t('ipDynamic'))}</span>`;
-      }
-      parts.push(`${esc(d.ip || d.fixedIp)} ${tag}`);
-      if (short) return parts[0]; // the header of a card is narrow: the MAC addresses are inside the card
-    }
-    parts.push(esc((macs || (d && d.macs) || []).join(', ')));
-    return parts.join(' · ');
-  }
-
-  /** The address line of a row in rename mode, with the button that makes the address fixed or releases it. */
-  function fixBlock(d) {
-    const can = router && router.dhcp && router.dhcp.enabled && (d.fixedIp || d.ip);
-    const button = !can ? '' : `<button type="button" class="btn btn-sm ${d.fixedIp ? 'btn-secondary' : 'btn-primary'} lv-fix" data-act="fix" data-mac="${esc(d.macs[0])}" ${d.busy ? 'disabled' : ''}>${esc(t(d.fixedIp ? 'release' : 'makeFixed'))}</button>`;
-    return `<div class="lv-sub lv-ltr" style="margin-top:.25rem">${addressLine(d)}</div>${button}`;
-  }
-
   function renderChosen(item, i) {
     const d = item.device;
     const name = d.name || routerName(item.macs) || item.macs[0];
     const open = view.open === item.macs[0];
-    const online = isOnline(item.macs);
-    const head = `
-      <button type="button" class="lv-head" data-act="open" data-i="${i}">
-        <span class="lv-dot ${online ? 'on' : ''}" title="${esc(t(online ? 'online' : 'offline'))}"></span>
-        <span class="lv-grow">
-          <div class="lv-name">${esc(name)}</div>
-          <div class="lv-sub lv-ltr">${addressLine(item.macs.map(routerDevice).find(Boolean), item.macs, true)}</div>
-        </span>
-        ${item.auto ? `<span class="lv-tag">${esc(t('auto'))}</span>` : ''}
-        ${chevron}
-      </button>`;
-    if (!open) return `<div class="lv-box">${head}</div>`;
-
+    const online = router ? isOnline(item.macs) : null;
+    const emoji = iconFor(item.macs, name);
+    const state = routerState(item.macs);
     const schedules = Array.isArray(d.schedules) ? d.schedules : [];
+    const on = { pause: flag(d, 'pauseSwitch', 'pauseSwitches'), sched: flag(d, 'scheduleSwitch', 'scheduleSwitches'), sensor: flag(d, 'presenceSensor', 'presenceSensors') };
+    const schedPill = schedules.length > 1 ? t('pillSched', { n: schedules.length }) : schedules.length ? t('pillSched1') : t('pillSchedDefault');
+    const picker = view.picker === `home:${item.macs[0]}`;
+    const head = `
+      <div class="lv-row" style="align-items:flex-start">
+        ${avatar(emoji, online, '', `data-act="icon" data-where="home" data-mac="${esc(item.macs[0])}" aria-label="${esc(t('changeIcon'))}"`)}
+        <button type="button" class="lv-head lv-grow" data-act="open" data-i="${i}" style="align-items:flex-start">
+          <span class="lv-grow">
+            <div class="lv-name">${esc(name)}</div>
+            <div class="lv-sub">${online == null ? ltr(item.macs.join(', ')) : esc(t(online ? 'online' : 'offline'))}${item.auto ? ` · ${esc(t('auto'))}` : ''}</div>
+            <div class="lv-chips">
+              ${state ? `<span class="lv-chip ${state[0]}">${esc(state[1])}</span>` : ''}
+              <span class="lv-chip ${on.pause ? 'blue' : 'off'}">⏸ ${esc(t('pillPause'))}</span>
+              <span class="lv-chip ${on.sched ? 'blue' : 'off'}">🕘 ${esc(schedPill)}</span>
+              <span class="lv-chip ${on.sensor ? 'blue' : 'off'}">📶 ${esc(t('pillSensor'))}</span>
+            </div>
+          </span>
+          ${chevron}
+        </button>
+      </div>
+      ${picker ? renderPicker('home', item.macs, emoji) : ''}`;
+    if (!open) return `<div class="lv-card">${head}</div>`;
+
+    const tile = (key, emo, title, desc, checked) => `
+      <label class="lv-tile ${checked ? 'on' : ''}">
+        <span class="e">${emo}</span>
+        <span class="lv-grow"><b>${esc(t(title))}</b><small>${esc(t(desc))}</small></span>
+        ${toggle(checked, `data-ch="flag" data-key="${key}" data-i="${i}"`)}
+      </label>`;
+    const rule = item.macs.map(routerRule).find(Boolean);
+    const chart = schedules.length
+      ? `<div class="lv-sect">${esc(t('weekPlan'))}</div><div class="lv-chart">${weekChart(combine(schedules.map(scheduleWeek)))}</div>`
+      : rule && rule.week ? `<div class="lv-sect">${esc(t('routerNow'))}</div><div class="lv-chart">${weekChart(rule.week)}</div>` : '';
     return `
-      <div class="lv-box lv-open">${head}
+      <div class="lv-card lv-open">${head}
         <div class="lv-body">
           <label class="lv-label">${esc(t('name'))}</label>
           <input class="form-control" type="text" value="${esc(item.auto ? homeName(name) : d.name)}" data-in="name" data-i="${i}">
-          <div class="lv-checks">
-            ${check(`lv-p${i}`, t('pause'), flag(d, 'pauseSwitch', 'pauseSwitches'), `data-ch="flag" data-key="pauseSwitch" data-i="${i}"`)}
-            ${check(`lv-s${i}`, t('schedSwitch'), flag(d, 'scheduleSwitch', 'scheduleSwitches'), `data-ch="flag" data-key="scheduleSwitch" data-i="${i}"`)}
-            ${check(`lv-c${i}`, t('sensor'), flag(d, 'presenceSensor', 'presenceSensors'), `data-ch="flag" data-key="presenceSensor" data-i="${i}"`)}
+
+          <div class="lv-sect">${esc(t('tilesTitle'))}</div>
+          <div class="lv-tiles">
+            ${tile('pauseSwitch', '⏸️', 'pause', 'pauseDesc', on.pause)}
+            ${tile('scheduleSwitch', '🕘', 'schedSwitch', 'schedSwitchDesc', on.sched)}
+            ${tile('presenceSensor', '📶', 'sensor', 'sensorDesc', on.sensor)}
           </div>
-          <label class="lv-label" style="margin-top:1rem">${esc(t('schedules'))}</label>
-          <p class="lv-hint">${esc(t(schedules.length ? 'schedHint' : 'noSchedules'))}</p>
-          ${schedules.map((s, k) => renderSchedule(s, i, k)).join('')}
-          <button type="button" class="btn btn-sm btn-primary" style="margin-top:.6rem" data-act="sched-add" data-i="${i}">+ ${esc(t('addSchedule'))}</button>
-          <label class="lv-label" style="margin-top:1rem">${esc(t('macs'))}</label>
-          <input class="form-control lv-ltr" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${esc(item.macs.join(', '))}" data-in="macs" data-i="${i}">
-          <p class="lv-hint" style="margin-top:.3rem">${esc(t('macsHint'))}</p>
-          <button type="button" class="btn btn-sm btn-danger" data-act="remove" data-i="${i}">${esc(t('remove'))}</button>
+
+          ${chart}
+
+          <div class="lv-sect">${esc(t('schedules'))}</div>
+          <p class="lv-hint">${esc(t(!on.sched && schedules.length ? 'schedOff' : schedules.length ? 'schedHint' : 'noSchedules'))}</p>
+          ${schedules.map((s, k) => renderSchedule(s, i, k, on.sched)).join('')}
+          <div class="lv-presets">
+            ${PRESETS.map((p, n) => `<button type="button" class="lv-preset" data-act="sched-add" data-i="${i}" data-p="${n}">+ ${p.emoji} ${esc(t(p.key))}</button>`).join('')}
+          </div>
+
+          <details class="lv-adv" ${view.adv === item.macs[0] ? 'open' : ''} data-adv="${esc(item.macs[0])}">
+            <summary>${esc(t('advanced'))}</summary>
+            <label class="lv-label">${esc(t('macs'))}</label>
+            <input class="form-control lv-ltr" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${esc(item.macs.join(', '))}" data-in="macs" data-i="${i}">
+            <p class="lv-hint" style="margin-top:.3rem">${esc(t('macsHint'))}</p>
+            <button type="button" class="btn btn-sm btn-danger" data-act="remove" data-i="${i}">${esc(t('remove'))}</button>
+          </details>
+        </div>
+      </div>`;
+  }
+
+  // ------------------------------------------------------------------ network list
+
+  /** "10.0.0.5 [fixed IP]" - the address, and whether the router keeps it fixed. */
+  function addressLine(d) {
+    if (!d || !(d.ip || d.fixedIp)) return '';
+    let tag = '';
+    if (router && router.dhcp) {
+      const moved = d.fixedIp && d.ip && d.fixedIp !== d.ip ? ` ${d.fixedIp}` : '';
+      const dir = lang === 'he' ? 'rtl' : 'ltr';
+      tag = d.fixedIp ? `<span class="lv-ip fixed" dir="${dir}">${esc(t('ipFixed') + moved)}</span>` : `<span class="lv-ip" dir="${dir}">${esc(t('ipDynamic'))}</span>`;
+    }
+    return `${ltr(d.ip || d.fixedIp)} ${tag}`;
+  }
+  /** The address with the button that makes it fixed or releases it. */
+  function fixBlock(d) {
+    const can = router && router.dhcp && router.dhcp.enabled && (d.fixedIp || d.ip);
+    const button = !can ? '' : `<button type="button" class="btn btn-sm ${d.fixedIp ? 'btn-secondary' : 'btn-primary'}" style="margin-top:.35rem" data-act="fix" data-mac="${esc(d.macs[0])}" ${d.busy ? 'disabled' : ''}>${esc(t(d.fixedIp ? 'release' : 'makeFixed'))}</button>`;
+    return `<div>${addressLine(d) || '—'}</div>${button}`;
+  }
+  function linkText(d) {
+    if (!d.online) return '';
+    const kind = d.link === 'wired' ? `🔗 ${t('wired')}` : d.link === 'wifi' ? `📶 ${t('wifi')}${d.band ? ` ${d.band.replace(/ghz/i, ' GHz')}` : ''}` : '';
+    return [kind, d.guest ? t('guest') : ''].filter(Boolean).join(' · ');
+  }
+
+  function renderDevice(d, taken) {
+    const inHome = d.macs.some((m) => taken.has(m));
+    const open = view.dev === d.macs[0];
+    const emoji = iconFor(d.macs, d.name);
+    const sub = d.online ? [d.ip ? ltr(d.ip) : '', esc(linkText(d)), d.node ? `${esc(d.node)}` : ''].filter(Boolean).join(' · ') : esc(t('offline'));
+    const head = `
+      <button type="button" class="lv-dev-head" data-act="dev" data-mac="${esc(d.macs[0])}">
+        ${avatar(emoji, d.online)}
+        <span class="lv-grow">
+          <div class="lv-name" data-name="${esc(d.macs[0])}">${esc(d.name || d.macs[0])}</div>
+          <div class="lv-sub">${sub}</div>
+        </span>
+        ${inHome ? '<span class="lv-chip blue" title="Apple Home">🏠</span>' : ''}
+        ${d.fixedIp ? `<span class="lv-chip green" title="${esc(t('ipFixed'))}">📌</span>` : ''}
+        ${chevron}
+      </button>`;
+    if (!open) return `<div class="lv-dev">${head}</div>`;
+
+    const maker = [d.maker, d.model].filter(Boolean).join(' ');
+    const status = d.online ? `<span class="lv-ok">● ${esc(t('online'))}</span>` : `<span style="opacity:.7">○ ${esc(t('offline'))}</span>`;
+    const facts = [
+      ['factStatus', status],
+      ['factIp', `<div data-fix="${esc(d.macs[0])}">${fixBlock(d)}</div>`],
+      d.online && linkText(d) ? ['factLink', esc(linkText(d))] : null,
+      d.online && d.node ? ['factNode', esc(d.node)] : null,
+      maker || d.os ? ['factMaker', esc([maker, d.os].filter(Boolean).join(' · '))] : null,
+      ['factMac', ltr(d.macs.join(', '))],
+    ].filter(Boolean);
+    return `
+      <div class="lv-dev lv-open">${head}
+        <div class="lv-panel">
+          <div class="lv-row">
+            ${avatar(emoji, null, 'big', `data-act="icon" data-where="net" data-mac="${esc(d.macs[0])}" aria-label="${esc(t('changeIcon'))}"`)}
+            <div class="lv-grow">
+              <div class="lv-hint" style="margin:0 0 .3rem">${esc(t('icon'))}</div>
+              <button type="button" class="btn btn-sm btn-primary" data-act="icon" data-where="net" data-mac="${esc(d.macs[0])}">${esc(t('changeIcon'))}</button>
+            </div>
+          </div>
+          ${view.picker === `net:${d.macs[0]}` ? renderPicker('net', d.macs, emoji) : ''}
+
+          <label class="lv-switchrow">
+            <span style="font-size:1.3rem">🏠</span>
+            <span class="lv-grow"><b>${esc(t('inHomeSwitch'))}</b><div class="lv-sub" style="white-space:normal">${esc(t('inHomeSwitchHint'))}</div></span>
+            ${toggle(inHome, `data-ch="pick" data-mac="${esc(d.macs[0])}"`)}
+          </label>
+          ${inHome ? `<button type="button" class="btn btn-sm btn-link" style="padding-inline:0" data-act="goto-home" data-mac="${esc(d.macs[0])}">${esc(t('openParental'))} ↑</button>` : ''}
+
+          <label class="lv-label">${esc(t('routerName'))}</label>
+          <input class="form-control" type="text" maxlength="64" enterkeyhint="done" autocomplete="off" autocapitalize="sentences"
+            placeholder="${esc(d.hostname || d.macs[0])}" value="${esc(d.name === d.hostname ? '' : d.name)}" ${d.id ? '' : 'disabled'} data-ch="rename" data-mac="${esc(d.macs[0])}">
+          <div class="lv-note" data-status="${esc(d.macs[0])}"></div>
+          <p class="lv-hint" style="margin:.3rem 0 0">${esc(t('routerNameHint'))}</p>
+
+          <dl class="lv-facts">${facts.map(([k, v]) => `<dt>${esc(t(k))}</dt><dd>${v}</dd>`).join('')}</dl>
         </div>
       </div>`;
   }
@@ -468,55 +933,46 @@
   function renderNetwork(taken) {
     if (!router) return '';
     const query = view.search.trim().toLowerCase();
+    const inHome = (d) => d.macs.some((m) => taken.has(m));
+    const counts = {
+      all: router.devices.length,
+      online: router.devices.filter((d) => d.online).length,
+      offline: router.devices.filter((d) => !d.online).length,
+      home: router.devices.filter(inHome).length,
+    };
+    const keep = {
+      all: () => true, online: (d) => d.online, offline: (d) => !d.online, home: inHome,
+    }[view.filter] || (() => true);
+    // A search looks through every device, whatever the filter.
     const list = router.devices
-      .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')}`.toLowerCase().includes(query) : (!view.onlyOnline || d.online)))
+      .filter((d) => (query ? `${d.name} ${d.hostname} ${d.ip} ${d.macs.join(' ')} ${d.maker} ${d.node}`.toLowerCase().includes(query) : keep(d)))
       .sort((a, b) => (b.online - a.online) || (a.name || '~').localeCompare(b.name || '~', lang));
     const shown = list.slice(0, view.limit);
-    // Every device is listed. A tick means it is in Apple Home: ticking adds it, unticking removes it.
-    const pickRow = (d) => {
-      const inHome = d.macs.some((m) => taken.has(m));
-      return `
-          <label class="lv-pick">
-            <input class="form-check-input" type="checkbox" data-ch="pick" data-mac="${esc(d.macs[0])}" ${inHome ? 'checked' : ''}>
-            <span class="lv-dot ${d.online ? 'on' : ''}"></span>
-            <span class="lv-grow">
-              <div class="lv-name">${esc(d.name || d.macs[0])}</div>
-              <div class="lv-sub lv-ltr">${addressLine(d)}</div>
-            </span>
-            ${inHome ? `<span class="lv-tag">${esc(t('inHomeTag'))}</span>` : ''}
-          </label>`;
-    };
-    const editRow = (d) => `
-          <div class="lv-edit">
-            <span class="lv-dot ${d.online ? 'on' : ''}"></span>
-            <span class="lv-grow">
-              <input class="form-control" type="text" maxlength="64" enterkeyhint="next" autocomplete="off" autocapitalize="sentences"
-                placeholder="${esc(d.hostname || d.macs[0])}" value="${esc(d.name === d.hostname ? '' : d.name)}" aria-label="${esc(d.hostname || d.macs[0])}"
-                ${d.id ? '' : 'disabled'} data-ch="rename" data-mac="${esc(d.macs[0])}">
-              <div data-fix="${esc(d.macs[0])}">${fixBlock(d)}</div>
-              <div class="lv-note" data-status="${esc(d.macs[0])}"></div>
-            </span>
-          </div>`;
+    const groups = query || view.filter === 'all' || view.filter === 'home';
+    const nOnline = list.filter((d) => d.online).length;
+    let rows = '';
+    shown.forEach((d, n) => {
+      if (groups && (n === 0 || shown[n - 1].online !== d.online)) {
+        rows += `<div class="lv-group">${esc(t(d.online ? 'groupOnline' : 'groupOffline', { n: d.online ? nOnline : list.length - nOnline }))}</div>`;
+      }
+      rows += renderDevice(d, taken);
+    });
+    const seg = (key, label) => `<button type="button" class="${!query && view.filter === key ? 'on' : ''}" data-act="filter" data-f="${key}">${esc(t(label))}<span class="n">${counts[key]}</span></button>`;
     return `
-      <h5>${esc(t(view.rename ? 'renameTitle' : 'network'))}</h5>
-      <p class="lv-hint">${esc(t(view.rename ? 'renameHint' : 'networkHint'))}${view.rename && router.dhcp && router.dhcp.enabled ? ` ${esc(t('fixedHint'))}` : ''}</p>
-      <input class="form-control" type="search" placeholder="${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
-      <div class="form-check form-switch" style="margin:.6rem 0 .3rem">
-        <input class="form-check-input" type="checkbox" id="lv-online" ${view.onlyOnline ? 'checked' : ''} data-ch="only-online">
-        <label class="form-check-label" for="lv-online">${esc(t('onlyOnline'))}</label>
-      </div>
-      <div class="form-check form-switch" style="margin:.3rem 0 .6rem">
-        <input class="form-check-input" type="checkbox" id="lv-rename" ${view.rename ? 'checked' : ''} data-ch="rename-mode">
-        <label class="form-check-label" for="lv-rename">${esc(t('renameMode'))}</label>
-      </div>
+      <h5>${esc(t('network'))}</h5>
+      <p class="lv-hint">${esc(t('networkHint'))}</p>
+      <input class="form-control" type="search" placeholder="🔍 ${esc(t('search'))}" value="${esc(view.search)}" data-in="search">
       <div id="lv-net-wrap">
+      <div class="lv-seg">${seg('all', 'fAll')}${seg('online', 'fOnline')}${seg('offline', 'fOffline')}${seg('home', 'fHome')}</div>
       ${list.length > shown.length ? `<p class="lv-hint" id="lv-showing" style="margin:.2rem 0 .4rem">${esc(t('showing', { shown: shown.length, total: list.length }))}</p>` : ''}
-      <div class="lv-box" id="lv-net" style="padding:.2rem .7rem">
-        ${shown.length ? shown.map(view.rename ? editRow : pickRow).join('') : `<p class="lv-hint" style="margin:.6rem 0">${esc(t('nothing'))}</p>`}
+      <div class="lv-list" id="lv-net">
+        ${shown.length ? rows : `<p class="lv-hint" style="margin:.8rem 0">${esc(t('nothing'))}</p>`}
       </div>
-      ${list.length > shown.length ? `<button type="button" class="btn btn-sm btn-secondary" data-act="more">${esc(t('more', { n: Math.min(PAGE, list.length - shown.length) }))}</button>` : ''}
+      ${list.length > shown.length ? `<button type="button" class="btn btn-sm btn-secondary" style="margin-top:.6rem" data-act="more">${esc(t('more', { n: Math.min(PAGE, list.length - shown.length) }))}</button>` : ''}
       </div>`;
   }
+
+  // ------------------------------------------------------------------ fixed addresses
 
   /** Bring the fixed-address list, and the label on every device, in line with what the router stored. */
   function applyReservations(list) {
@@ -541,7 +997,7 @@
     const rows = fixedRows();
     const fixedRow = (r) => `
             <div class="lv-edit">
-              <span class="lv-dot ${r.state === 'online' ? 'on' : ''}"></span>
+              ${avatar(iconFor([r.mac], r.name), r.state === 'online', 'small')}
               <span class="lv-grow">
                 <div class="lv-name">${esc(r.name)}</div>
                 <div class="lv-sub lv-ltr">${esc(`${r.ip} · ${r.mac}`)}</div>
@@ -567,6 +1023,7 @@
     return `
       <div class="lv-box ${view.fixed ? 'lv-open' : ''}" id="lv-fixed" style="margin-top:1.4rem">
         <button type="button" class="lv-head" data-act="fixed-open">
+          <span style="font-size:1.2rem">📌</span>
           <span class="lv-grow lv-name">${esc(t('fixedTitle'))}</span>
           <span class="lv-tag">${rows.length}</span>
           ${chevron}
@@ -588,11 +1045,13 @@
       fixedBox.note = `${t('saved')} ✓${(result.sideEffects || []).length ? ` ${t('applying')}` : ''}`;
     } catch (e) {
       fixedBox.note = '';
-      fixedBox.error = (e && (e.message || (e.error && e.error.message))) || String(e);
+      fixedBox.error = errText(e);
     }
     fixedBox.busy = false;
     render();
   }
+
+  // ------------------------------------------------------------------ clean-up
 
   /** Old devices the router can forget: not connected, and not used for anything. */
   function staleDevices(taken) {
@@ -619,6 +1078,7 @@
             ${list.map((d) => `
               <label class="lv-pick">
                 <input class="form-check-input" type="checkbox" data-ch="clean-pick" data-id="${esc(d.id)}" ${ids.has(d.id) ? 'checked' : ''} ${clean.busy ? 'disabled' : ''}>
+                ${avatar(iconFor(d.macs, d.name), null, 'small')}
                 <span class="lv-grow">
                   <div class="lv-name">${esc(d.name || d.macs[0])}</div>
                   <div class="lv-sub lv-ltr">${esc(d.macs.join(', '))}</div>
@@ -631,8 +1091,9 @@
         ${clean.error ? `<div class="lv-err" id="lv-clean-err">${esc(clean.error)}</div>` : ''}
       </div>`;
     return `
-      <div class="lv-box ${view.clean ? 'lv-open' : ''}" id="lv-clean" style="margin-top:1.4rem">
+      <div class="lv-box ${view.clean ? 'lv-open' : ''}" id="lv-clean">
         <button type="button" class="lv-head" data-act="clean-open">
+          <span style="font-size:1.2rem">🧹</span>
           <span class="lv-grow lv-name">${esc(t('cleanTitle'))}</span>
           ${list.length ? `<span class="lv-tag">${list.length}</span>` : ''}
           ${chevron}
@@ -667,22 +1128,33 @@
       if (failed.length) clean.error = t('cleanFailed', { n: failed.length, msg: [...new Set(failed.map((f) => f.reason))].join(', ') });
     } catch (e) {
       clean.message = done ? t('cleanDone', { done }) : '';
-      clean.error = (e && (e.message || (e.error && e.error.message))) || String(e);
+      clean.error = errText(e);
     }
     clean.busy = false;
     clean.picked = null;
     render();
   }
 
+  // ------------------------------------------------------------------ options
+
   function renderOptions() {
     const labels = cfg.labels || {};
     const select = (key, value, options) => `<select class="form-select" data-ch="opt" data-key="${key}">${options.map(([v, text]) => `<option value="${v}" ${v === value ? 'selected' : ''}>${esc(text)}</option>`).join('')}</select>`;
     const labelInput = (key) => `<div class="lv-grow"><input class="form-control" type="text" placeholder="${esc(t('label' + key[0].toUpperCase() + key.slice(1)))}" value="${esc(labels[key])}" data-in="label" data-key="${key}"></div>`;
     return `
-      <div class="lv-box ${view.options ? 'lv-open' : ''}" style="margin-top:1.4rem">
-        <button type="button" class="lv-head" data-act="options"><span class="lv-grow lv-name">${esc(t('options'))}</span>${chevron}</button>
+      <div class="lv-box ${view.options ? 'lv-open' : ''}">
+        <button type="button" class="lv-head" data-act="options"><span style="font-size:1.2rem">⚙️</span><span class="lv-grow lv-name">${esc(t('options'))}</span>${chevron}</button>
         ${!view.options ? '' : `<div class="lv-body">
-          <div style="margin-top:.7rem">${check('lv-auto', t('autoDiscover'), cfg.autoDiscover !== false, 'data-ch="opt-bool" data-key="autoDiscover"')}</div>
+          <label class="lv-label" for="lv-layout">${esc(t('layout'))}</label>
+          <select class="form-select" id="lv-layout" data-ch="layout">
+            <option value="device" ${cfg.grouping === 'single' ? '' : 'selected'}>${esc(t('layoutDevice'))}</option>
+            <option value="single" ${cfg.grouping === 'single' ? 'selected' : ''}>${esc(t('layoutSingle'))}</option>
+          </select>
+          ${cfg.grouping !== 'single' ? '' : `
+            <p class="lv-hint" style="margin:.4rem 0 0">${esc(t('layoutHint'))}</p>
+            <label class="lv-label" for="lv-group">${esc(t('groupName'))}</label>
+            <input class="form-control" id="lv-group" type="text" placeholder="${esc(cfg.name || 'Linksys Velop')}" value="${esc(cfg.groupName)}" data-in="group-name">`}
+          <div style="margin-top:.9rem">${check('lv-auto', t('autoDiscover'), cfg.autoDiscover !== false, 'data-ch="opt-bool" data-key="autoDiscover"')}</div>
           <div style="margin-top:.5rem">${check('lv-reboot', t('reboot'), cfg.rebootSwitch === true, 'data-ch="opt-bool" data-key="rebootSwitch"')}</div>
           <p class="lv-hint">${esc(t('rebootHint'))}</p>
           <label class="lv-label">${esc(t('direction'))}</label>
@@ -706,14 +1178,22 @@
       </div>`;
   }
 
+  // ------------------------------------------------------------------ page
+
   function render() {
     current = chosen();
     const taken = new Set(current.flatMap((item) => item.macs));
-    const online = router ? router.devices.filter((d) => d.online).length : 0;
     const button = t(router ? 'refresh' : 'connect');
-    const status = busy ? t('loading')
-      : router ? t('statusOk', { online, total: router.devices.length, rules: router.rules.length, max: router.maxRules || '?' })
-        : t('needLogin', { button });
+    let status;
+    if (busy) status = `<div class="lv-status lv-hint" style="margin-bottom:0">${esc(t('loading'))}</div>`;
+    else if (router) {
+      const online = router.devices.filter((d) => d.online).length;
+      status = `<div class="lv-chips" style="margin-top:.7rem">
+          <span class="lv-chip green">● ${esc(t('chipOnline', { n: online }))}</span>
+          <span class="lv-chip">${esc(t('chipKnown', { n: router.devices.length }))}</span>
+          <span class="lv-chip">🛡️ ${esc(t('chipRules', { n: router.rules.length, max: router.maxRules || '?' }))}</span>
+        </div>`;
+    } else status = `<div class="lv-status lv-hint" style="margin-bottom:0">${esc(t('needLogin', { button }))}</div>`;
     root.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
     root.innerHTML = `
       <div class="lv-row" style="margin-bottom:.6rem">
@@ -732,26 +1212,19 @@
         <input class="form-control lv-ltr" id="lv-pass" type="password" autocomplete="off" value="${esc(cfg.password)}" data-in="password">
         <p class="lv-hint" style="margin:.3rem 0 .7rem">${esc(t('passwordHint'))}</p>
         <button type="button" class="btn btn-primary" data-act="connect" ${busy ? 'disabled' : ''}>${esc(button)}</button>
-        ${error ? `<div class="lv-err">${esc(error)}</div>` : `<div class="lv-status lv-hint" style="margin-bottom:0">${esc(status)}</div>`}
+        ${error ? `<div class="lv-err">${esc(error)}</div>` : status}
       </div>
 
-      <h5>${esc(t('inHome'))}</h5>
-      <label class="lv-label" style="margin-top:.3rem" for="lv-layout">${esc(t('layout'))}</label>
-      <select class="form-select" id="lv-layout" data-ch="layout">
-        <option value="device" ${cfg.grouping === 'single' ? '' : 'selected'}>${esc(t('layoutDevice'))}</option>
-        <option value="single" ${cfg.grouping === 'single' ? 'selected' : ''}>${esc(t('layoutSingle'))}</option>
-      </select>
-      ${cfg.grouping !== 'single' ? '' : `
-        <p class="lv-hint" style="margin:.4rem 0 0">${esc(t('layoutHint'))}</p>
-        <label class="lv-label" for="lv-group">${esc(t('groupName'))}</label>
-        <input class="form-control" id="lv-group" type="text" placeholder="${esc(cfg.name || 'Linksys Velop')}" value="${esc(cfg.groupName)}" data-in="group-name">`}
-      <p class="lv-hint" style="margin-top:.8rem">${esc(t(current.length ? 'inHomeHint' : 'none'))}</p>
+      <h5>🛡️ ${esc(t('parental'))}</h5>
+      <p class="lv-hint">${esc(t(current.length ? 'parentalHint' : 'none'))}</p>
       <div id="lv-chosen">${current.map(renderChosen).join('')}</div>
 
       ${renderNetwork(taken)}
-      ${renderFixed()}
-      ${renderClean(taken)}
-      ${renderOptions()}
+      <div style="margin-top:1.8rem">
+        ${renderFixed()}
+        ${renderClean(taken)}
+        ${renderOptions()}
+      </div>
       <p class="lv-hint" style="margin-top:1rem">${esc(t('saveNote'))}</p>`;
   }
 
@@ -765,7 +1238,7 @@
       router = await hb.request('/devices', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password });
     } catch (e) {
       router = null;
-      error = (e && (e.message || (e.error && e.error.message))) || String(e);
+      error = errText(e);
     } finally {
       if (hb.hideSpinner) hb.hideSpinner();
       busy = false;
@@ -785,9 +1258,12 @@
     try {
       await hb.request('/rename', { host: cfg.host, port: cfg.port, username: cfg.username, password: cfg.password, id: d.id, name });
       d.name = name || d.hostname;
+      d.custom = !!name;
       show(`${t('saved')} ✓`, 'lv-ok');
+      const title = root.querySelector(`[data-name="${input.dataset.mac}"]`);
+      if (title) title.textContent = d.name || d.macs[0];
     } catch (e) {
-      show(t('renameFail', { msg: (e && (e.message || (e.error && e.error.message))) || String(e) }), 'lv-err');
+      show(t('renameFail', { msg: errText(e) }), 'lv-err');
     }
   }
 
@@ -834,7 +1310,7 @@
       applyReservations(result.reservations);
       disturbed = (result.sideEffects || []).length > 0;
     } catch (e) {
-      failure = (e && (e.message || (e.error && e.error.message))) || String(e);
+      failure = errText(e);
     }
     for (const { device: d } of batch) {
       d.busy = false;
@@ -860,6 +1336,17 @@
     cfg.devices = (Array.isArray(cfg.devices) ? cfg.devices : []).concat([{ name: homeName(d.name) || d.macs[0], macs: d.macs.slice() }]);
   }
 
+  /** Redraw everything, keeping the page where it was (the Homebridge UI shows this screen in a frame that grows). */
+  function redraw(anchor) {
+    const before = anchor ? anchor.getBoundingClientRect().top : null;
+    const key = anchor && anchor.dataset.mac;
+    const how = anchor && (anchor.dataset.act ? `[data-act="${anchor.dataset.act}"]` : `[data-ch="${anchor.dataset.ch}"]`);
+    render();
+    if (before == null || !key) return;
+    const again = root.querySelector(`${how}[data-mac="${key}"]`);
+    if (again) window.scrollBy(0, again.getBoundingClientRect().top - before);
+  }
+
   root.addEventListener('click', (event) => {
     const el = event.target.closest('[data-act]');
     if (!el) return;
@@ -868,6 +1355,30 @@
     const k = Number(el.dataset.k);
     if (act === 'connect') { connect(); return; }
     if (act === 'fix') { toggleFixed(el.dataset.mac); return; }
+    if (act === 'dev') { view.dev = view.dev === el.dataset.mac ? null : el.dataset.mac; view.picker = null; redraw(el); return; }
+    if (act === 'filter') { view.filter = el.dataset.f; view.search = ''; view.limit = PAGE; render(); return; }
+    if (act === 'icon') {
+      const key = `${el.dataset.where}:${el.dataset.mac}`;
+      view.picker = view.picker === key ? null : key;
+      redraw(el);
+      return;
+    }
+    if (act === 'icon-set' || act === 'icon-auto') {
+      setIcon(pickerMacs(el.dataset.where, el.dataset.mac), act === 'icon-set' ? el.dataset.e : '');
+      view.picker = null;
+      push();
+      redraw(root.querySelector(`[data-act="icon"][data-mac="${el.dataset.mac}"]`));
+      return;
+    }
+    if (act === 'goto-home') {
+      const target = current.find((x) => x.macs.includes(el.dataset.mac));
+      if (!target) return;
+      view.open = target.macs[0];
+      render();
+      const card = root.querySelector(`#lv-chosen [data-mac="${target.macs[0]}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     if (act === 'fixed-open') { view.fixed = !view.fixed; Object.assign(fixedBox, { confirm: false, note: '', error: '' }); render(); return; }
     if (act === 'fixed-all') { fixedBox.all = !fixedBox.all; render(); return; }
     if (act === 'fixed-release') { releaseFixed([el.dataset.mac]); return; }
@@ -892,13 +1403,16 @@
     if (act === 'more') { view.limit += PAGE; render(); return; }
     if (act === 'options') { view.options = !view.options; render(); return; }
     if (!item) return;
-    if (act === 'open') { view.open = view.open === item.macs[0] ? null : item.macs[0]; render(); return; }
+    if (act === 'open') { view.open = view.open === item.macs[0] ? null : item.macs[0]; view.picker = null; render(); return; }
     if (act === 'remove') { removeItem(item); push(); render(); return; }
     const device = own(item);
     if (act === 'sched-add') {
       const list = Array.isArray(device.schedules) ? device.schedules : (device.schedules = []);
-      list.push(list.length ? { id: newId(), name: `${t('schedule')} ${list.length + 1}`, start: '14:00', end: '16:00' }
-        : { id: newId(), name: t('night'), start: '22:00', end: '06:00' });
+      const p = PRESETS[Number(el.dataset.p)] || PRESETS[PRESETS.length - 1];
+      const entry = { id: newId(), name: p.key === 'presetCustom' ? `${t('schedule')} ${list.length + 1}` : t(p.key), start: p.start, end: p.end };
+      if (p.school) entry.days = SCHOOL_DAYS[lang] || SCHOOL_DAYS.en;
+      list.push(entry);
+      device.scheduleSwitch = true; // a new schedule is meant to be used
     } else if (act === 'sched-remove') {
       device.schedules.splice(k, 1);
     } else if (act === 'sched-day') {
@@ -938,6 +1452,7 @@
       device.macs = macs;
       item.macs = macs;
       view.open = macs[0];
+      view.adv = macs[0];
     } else if (kind === 'name') {
       own(item).name = el.value;
     } else if (kind === 'sched-name') {
@@ -945,6 +1460,12 @@
     }
     push();
   });
+
+  // Remember an open "Advanced" section across redraws.
+  root.addEventListener('toggle', (event) => {
+    const el = event.target;
+    if (el.matches && el.matches('details[data-adv]')) view.adv = el.open ? el.dataset.adv : null;
+  }, true);
 
   root.addEventListener('change', (event) => {
     const el = event.target.closest('[data-ch]');
@@ -958,6 +1479,15 @@
       return;
     }
     if (kind === 'rename') { rename(el); return; }
+    if (kind === 'icon-own') {
+      const symbol = firstSymbol(el.value);
+      if (!symbol) return;
+      setIcon(pickerMacs(el.dataset.where, el.dataset.mac), symbol);
+      view.picker = null;
+      push();
+      redraw(root.querySelector(`[data-act="icon"][data-mac="${el.dataset.mac}"]`));
+      return;
+    }
     if (kind === 'clean-pick') {
       const all = staleDevices(new Set(current.flatMap((x) => x.macs)));
       if (!clean.picked) clean.picked = new Set(all.filter((d) => !d.custom).map((d) => d.id));
@@ -970,14 +1500,12 @@
       if (again) again.scrollTop = top; // keep the place in the list
       return;
     }
-    if (kind === 'rename-mode') { view.rename = el.checked; view.limit = PAGE; render(); return; }
-    if (kind === 'only-online') { view.onlyOnline = el.checked; view.limit = PAGE; render(); return; }
     if (kind === 'pick') {
       const d = routerDevice(el.dataset.mac);
       const item = d && current.find((x) => x.macs.some((m) => d.macs.includes(m)));
       if (el.checked && !item) pick(el.dataset.mac);
       else if (!el.checked && item) removeItem(item);
-      push(); render();
+      push(); redraw(el);
       return;
     }
     if (kind === 'opt-bool') { cfg[el.dataset.key] = el.checked; push(); render(); return; }
@@ -993,13 +1521,11 @@
     push(); render();
   });
 
-  // Enter in a name field saves it and jumps to the next one.
+  // Enter in a name field saves it.
   root.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' || !event.target.matches('[data-ch="rename"]')) return;
+    if (event.key !== 'Enter' || !event.target.matches('[data-ch="rename"], [data-ch="icon-own"]')) return;
     event.preventDefault();
-    const fields = [...root.querySelectorAll('[data-ch="rename"]:not([disabled])')];
-    const next = fields[fields.indexOf(event.target) + 1];
-    if (next) next.focus(); else event.target.blur();
+    event.target.blur();
   });
 
   // -------------------------------------------------------------------- start
@@ -1011,6 +1537,11 @@
       else { push(); }
     } catch (e) { /* start with an empty configuration */ }
     lang = cfg.language === 'he' ? 'he' : 'en'; // English unless Hebrew was chosen on this screen
+    // The dot on an avatar is ringed in the page colour.
+    try {
+      const bg = getComputedStyle(document.body).backgroundColor;
+      if (bg && !/rgba\(.*,\s*0\)$|transparent/.test(bg)) root.style.setProperty('--lv-bg', bg);
+    } catch (e) { /* no ring */ }
     render();
     if (cfg.host && cfg.password) connect();
   })();

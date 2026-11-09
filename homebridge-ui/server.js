@@ -7,7 +7,7 @@
 
 const { JnapClient, ACTIONS } = require('../lib/jnap');
 const { normMac, ruleMacs, deviceView } = require('../lib/parental');
-const { describe } = require('../lib/schedule');
+const { describe, DAYS } = require('../lib/schedule');
 
 async function readRouter(client) {
   const base = [{ action: ACTIONS.GET_PARENTAL }, { action: ACTIONS.GET_DEVICES }];
@@ -54,6 +54,8 @@ function reservationList(lan) {
   return list.map((r) => ({ mac: normMac(r.macAddress), ip: r.ipAddress, label: r.description || '' })).filter((r) => r.mac && r.ip);
 }
 
+const clean = (text) => String(text || '').replace(/�/g, '').replace(/\s+/g, ' ').trim();
+
 /** Everything the settings screen needs to know about the network, in a compact form. */
 async function listDevices(body) {
   const host = String((body && body.host) || '').trim();
@@ -63,9 +65,16 @@ async function listDevices(body) {
   const [settings, list, lan] = await readRouter(client);
   const reserved = new Map(reservationList(lan).map((r) => [r.mac, r.ip]));
 
+  const all = Array.isArray(list.devices) ? list.devices : [];
+  const isNode = (d) => !!(d.nodeType || d.isAuthority || (d.model && d.model.deviceType === 'Infrastructure'));
+  const prop = (d, name) => { const p = (d.properties || []).find((x) => x.name === name && x.value); return p ? String(p.value) : ''; };
+  // The mesh nodes, by ID, with the place name given to them in the Linksys app ("Living room").
+  const nodes = new Map(all.filter(isNode).map((d) => [d.deviceID,
+    clean(prop(d, 'userDeviceLocation') || prop(d, 'userDeviceName') || d.friendlyName || (d.isAuthority ? 'Main node' : ''))]));
+
   const devices = [];
-  for (const d of Array.isArray(list.devices) ? list.devices : []) {
-    if (d.nodeType || d.isAuthority || (d.model && d.model.deviceType === 'Infrastructure')) continue; // the mesh nodes themselves
+  for (const d of all) {
+    if (isNode(d)) continue; // the mesh nodes themselves
     const macs = new Set();
     for (const i of d.knownInterfaces || []) macs.add(normMac(i.macAddress));
     for (const m of d.knownMACAddresses || []) macs.add(normMac(m));
@@ -74,9 +83,13 @@ async function listDevices(body) {
     if (!macs.size) continue;
     const user = (d.properties || []).find((p) => p.name === 'userDeviceName' && p.value);
     const connection = (d.connections || [])[0];
+    // How it is connected right now: the interface that carries the connection, and the node it hangs off.
+    const via = connection && (d.knownInterfaces || []).find((i) => normMac(i.macAddress) === normMac(connection.macAddress));
+    const kind = String((via && via.interfaceType) || '').toLowerCase();
+    const model = d.model || {};
     devices.push({
       id: d.deviceID || '',
-      name: String((user && user.value) || d.friendlyName || '').replace(/\uFFFD/g, '').replace(/\s+/g, ' ').trim(),
+      name: clean((user && user.value) || d.friendlyName),
       hostname: d.friendlyName || '',
       custom: !!user, // has a name someone typed, as opposed to the name the device reports
       macs: [...macs],
@@ -84,6 +97,15 @@ async function listDevices(body) {
       ip: (connection && connection.ipAddress) || '',
       ipMac: (connection && normMac(connection.macAddress)) || [...macs][0], // the address the IP belongs to
       fixedIp: [...macs].map((m) => reserved.get(m)).find(Boolean) || '',
+      link: !connection ? '' : kind === 'wired' ? 'wired' : kind === 'wireless' ? 'wifi' : '',
+      band: (via && kind === 'wireless' && via.band) || '',
+      node: (connection && nodes.get(connection.parentDeviceID)) || '',
+      guest: !!(connection && connection.isGuest),
+      // What the device says about itself, used to pick a fitting icon on the settings screen.
+      type: clean(prop(d, 'userDeviceType') || model.deviceType),
+      maker: clean(model.manufacturer),
+      model: clean(model.modelNumber || model.description),
+      os: clean((d.unit && d.unit.operatingSystem) || ''),
     });
   }
 
@@ -92,7 +114,11 @@ async function listDevices(body) {
     const macs = ruleMacs(rule);
     if (!macs.length) continue;
     const view = deviceView(settings, macs);
-    rules.push({ macs, state: view.state, text: view.scheduledWeek ? describe(view.scheduledWeek) : view.state });
+    rules.push({
+      macs, state: view.state, text: view.scheduledWeek ? describe(view.scheduledWeek) : view.state,
+      // the schedule on the router, Sunday first, 48 half hours a day ('0' = blocked), for the week chart
+      week: view.scheduledWeek ? DAYS.map((day) => view.scheduledWeek[day]) : null,
+    });
   }
 
   return {

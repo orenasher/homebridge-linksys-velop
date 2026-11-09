@@ -255,6 +255,13 @@
           "placeholder": "AA:BB:CC:DD:EE:FF"
         }
       },
+      "icons": {
+        "title": "Icons on the settings screen (by MAC address)",
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
       "labels": {
         "title": "Names used in Apple Home",
         "type": "object",

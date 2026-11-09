@@ -302,3 +302,32 @@ test('settings screen server refuses bad forget requests', async (t) => {
   assert.ok(!JSON.stringify(wrong).includes('Wr0ng'));
   assert.equal(router.state.devices.length, 6);
 });
+
+test('settings screen server tells how each device is connected', async (t) => {
+  const router = new MockRouter('secret');
+  router.state.devices.push({
+    deviceID: 'node-2', friendlyName: 'Velop-2', nodeType: 'Slave', knownInterfaces: [{ macAddress: '02:00:00:FF:00:02' }],
+    connections: [], properties: [{ name: 'userDeviceLocation', value: 'Living room' }],
+  });
+  const phone = router.state.devices.find((d) => d.deviceID === 'id-e');
+  phone.knownInterfaces = [{ macAddress: MAC.phone, interfaceType: 'Wireless', band: '5GHz' }];
+  phone.connections = [{ macAddress: MAC.phone, ipAddress: '10.0.0.50', parentDeviceID: 'node-2' }];
+  phone.model = { deviceType: 'Mobile', manufacturer: 'Apple Inc.', modelNumber: 'iPhone' };
+  phone.unit = { operatingSystem: 'iOS' };
+  const consoleA = router.state.devices.find((d) => d.deviceID === 'id-a');
+  consoleA.knownInterfaces = [{ macAddress: MAC.consoleA, interfaceType: 'Wired' }];
+  const port = await router.listen();
+  t.after(() => router.close());
+  const ui = startUiServer(t);
+
+  const { data } = await ui.request('/devices', { host: `127.0.0.1:${port}`, password: 'secret' });
+  const p = data.devices.find((d) => d.macs.includes(MAC.phone));
+  assert.deepEqual({ link: p.link, band: p.band, node: p.node, type: p.type, maker: p.maker, os: p.os },
+    { link: 'wifi', band: '5GHz', node: 'Living room', type: 'Mobile', maker: 'Apple Inc.', os: 'iOS' });
+  assert.equal(data.devices.find((d) => d.macs.includes(MAC.consoleA)).link, 'wired');
+  assert.equal(data.devices.find((d) => d.macs.includes(MAC.consoleC)).link, '', 'not connected');
+  assert.equal(data.devices.some((d) => d.id === 'node-2'), false, 'nodes are not devices');
+  const night = data.rules.find((r) => r.macs.includes(MAC.consoleA));
+  assert.equal(night.week.length, 7);
+  assert.equal(night.week[0], '0'.repeat(12) + '1'.repeat(32) + '0'.repeat(4));
+});

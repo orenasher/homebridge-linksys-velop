@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0
+
+- New device list: every device has an icon, its name, and how it is connected (IP, Wi-Fi band or cable, and the Velop node). Filters for all, connected, not connected and in Apple Home. Tap a device for its details: icon, In Apple Home, name on the router, fixed IP, MAC and maker.
+- Icons: guessed from the device's name and what it reports, and can be changed to any emoji. Shown on the settings screen only.
+- New parental controls cards: what the router is doing now, switches as on/off tiles, schedules added with one tap (Bedtime, School, Homework, Dinner, Custom), and a chart of the week.
+- The "One tile for everything" choice moved to More options.
+
 ## 1.7.4
 
 - donation link (PayPal)
