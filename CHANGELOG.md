@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.1
+
+- A device that reports no name is listed as "No name" with its IP address, so it can be found and named.
+- `node cli.js <router> device <MAC, IP or name>` prints everything the router knows about a device.
+
 ## 1.8.0
 
 - New device list: every device has an icon, its name, and how it is connected (IP, Wi-Fi band or cable, and the Velop node). Filters for all, connected, not connected and in Apple Home. Tap a device for its details: icon, In Apple Home, name on the router, fixed IP, MAC and maker.

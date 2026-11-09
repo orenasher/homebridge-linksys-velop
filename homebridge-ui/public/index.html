@@ -154,6 +154,7 @@
       groupName: 'Name of the tile',
       auto: 'from Parental Controls',
       online: 'connected',
+      unnamed: 'No name',
       offline: 'not connected',
       stOpen: 'internet on',
       stPaused: 'paused',
@@ -313,6 +314,7 @@
       groupName: 'שם האריח',
       auto: 'מבקרת הורים',
       online: 'מחובר',
+      unnamed: 'ללא שם',
       offline: 'לא מחובר',
       stOpen: 'יש אינטרנט',
       stPaused: 'מושהה',
@@ -541,6 +543,8 @@
 
   // ------------------------------------------------------------- data helpers
 
+  /** What to call a device in a list: its name, or for one that reports no name, its address. */
+  const label = (d) => d.name || (d.ip ? `${t('unnamed')} · ${d.ip}` : d.macs[0]);
   function routerDevice(mac) {
     return router ? router.devices.find((d) => d.macs.includes(mac)) : null;
   }
@@ -881,7 +885,7 @@
       <button type="button" class="lv-dev-head" data-act="dev" data-mac="${esc(d.macs[0])}">
         ${avatar(emoji, d.online)}
         <span class="lv-grow">
-          <div class="lv-name" data-name="${esc(d.macs[0])}">${esc(d.name || d.macs[0])}</div>
+          <div class="lv-name" data-name="${esc(d.macs[0])}">${esc(label(d))}</div>
           <div class="lv-sub">${sub}</div>
         </span>
         ${inHome ? '<span class="lv-chip blue" title="Apple Home">🏠</span>' : ''}
@@ -1080,7 +1084,7 @@
                 <input class="form-check-input" type="checkbox" data-ch="clean-pick" data-id="${esc(d.id)}" ${ids.has(d.id) ? 'checked' : ''} ${clean.busy ? 'disabled' : ''}>
                 ${avatar(iconFor(d.macs, d.name), null, 'small')}
                 <span class="lv-grow">
-                  <div class="lv-name">${esc(d.name || d.macs[0])}</div>
+                  <div class="lv-name">${esc(label(d))}</div>
                   <div class="lv-sub lv-ltr">${esc(d.macs.join(', '))}</div>
                 </span>
                 ${d.custom ? `<span class="lv-tag">${esc(t('customName'))}</span>` : ''}
@@ -1261,7 +1265,7 @@
       d.custom = !!name;
       show(`${t('saved')} ✓`, 'lv-ok');
       const title = root.querySelector(`[data-name="${input.dataset.mac}"]`);
-      if (title) title.textContent = d.name || d.macs[0];
+      if (title) title.textContent = label(d);
     } catch (e) {
       show(t('renameFail', { msg: errText(e) }), 'lv-err');
     }
