@@ -5,6 +5,7 @@
 //   node cli.js <router-ip> status
 //   node cli.js <router-ip> pause  <MAC>
 //   node cli.js <router-ip> resume <MAC> [22:00 06:00]
+//   node cli.js <router-ip> device <MAC, IP or part of a name> ...   (everything the router knows about a device)
 // The admin password is asked for (or taken from LINKSYS_PASSWORD) and never printed.
 
 const readline = require('readline');
@@ -22,8 +23,8 @@ function askHidden(question) {
 
 async function main() {
   const [host, command = 'status', macArg, start, end] = process.argv.slice(2);
-  if (!host || !['status', 'pause', 'resume'].includes(command)) {
-    console.log('Usage:\n  node cli.js <router-ip> status\n  node cli.js <router-ip> pause <MAC>\n  node cli.js <router-ip> resume <MAC> [22:00 06:00]');
+  if (!host || !['status', 'pause', 'resume', 'device'].includes(command)) {
+    console.log('Usage:\n  node cli.js <router-ip> status\n  node cli.js <router-ip> pause <MAC>\n  node cli.js <router-ip> resume <MAC> [22:00 06:00]\n  node cli.js <router-ip> device <MAC, IP or name> ...');
     process.exit(1);
   }
   const password = process.env.LINKSYS_PASSWORD || await askHidden('Router admin password: ');
@@ -52,6 +53,18 @@ async function main() {
   if (command === 'status') {
     console.log(`Router answered. ${(list.devices || []).length} devices known.`);
     show(settings);
+    return;
+  }
+
+  if (command === 'device') {
+    // Everything the router knows about the devices that match, exactly as it reports it.
+    const wanted = process.argv.slice(4).map((w) => w.toLowerCase());
+    if (!wanted.length) throw new Error('Give a MAC address, an IP address or part of a name');
+    const all = list.devices || [];
+    console.log(`${all.length} devices known, ${all.filter((d) => (d.connections || []).length).length} connected.`);
+    const hits = all.filter((d) => { const text = JSON.stringify(d).toLowerCase(); return wanted.some((w) => text.includes(w)); });
+    if (!hits.length) console.log('No device matches.');
+    for (const d of hits) console.log(JSON.stringify(d, null, 2));
     return;
   }
 
