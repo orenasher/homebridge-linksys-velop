@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.2
+
+- New versions are published to npm straight from GitHub (verified, with provenance). Nothing changes in the plugin itself.
+- גרסאות חדשות מתפרסמות ל‑npm ישירות מ‑GitHub (מאומת, עם מקור מוצהר). בפלאגין עצמו לא השתנה כלום.
+
 ## 1.8.1
 
 - A device that reports no name is listed as "No name" with its IP address, so it can be found and named.
